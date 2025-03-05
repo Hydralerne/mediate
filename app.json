@@ -1,0 +1,148 @@
+{
+  "expo": {
+    "name": "ONVO",
+    "slug": "ONVO",
+    "version": "2.0.7",
+    "orientation": "portrait",
+    "icon": "./assets/images/app.png",
+    "scheme": "onvo",
+    "host": "onvo.me",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "backgroundColor": "#000000",
+    "androidStatusBar": {
+      "backgroundColor": "#000000",
+      "translucent": true
+    },
+    "jsEngine": "hermes",
+    "ios": {
+      "hermesEngineDebug": true,
+      "backgroundColor": "#000000",
+      "supportsTablet": true,
+      "entitlements": {
+        "aps-environment": "production",
+        "com.apple.developer.associated-domains": [
+          "applinks:onvo.me"
+        ]
+      },
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "FirebaseAppDelegateProxyEnabled": true,
+        "UIBackgroundModes": [
+          "audio",
+          "remote-notification"
+        ],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "onvo"
+            ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "onvo"
+            ]
+          }
+        ],
+        "UIViewControllerBasedStatusBarAppearance": false
+      },
+      "bundleIdentifier": "me.onvo.ONVO"
+    },
+    "android": {
+      "useNextNotificationsApi": true,
+      "hermesEngineDebug": true,
+      "backgroundColor": "#000000",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      },
+      "package": "me.onvo.onvo",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "onvo"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "https",
+              "host": "onvo.me"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icons/logo/logo.png",
+          "imageWidth": 100,
+          "resizeMode": "contain",
+          "backgroundColor": "#000000"
+        }
+      ],
+      "expo-secure-store",
+      "expo-font",
+      "expo-asset",
+      "expo-video",
+      [
+        "react-native-share",
+        {
+          "ios": [
+            "fb",
+            "instagram",
+            "twitter",
+            "tiktoksharesdk"
+          ],
+          "android": [
+            "com.facebook.katana",
+            "com.instagram.android",
+            "com.twitter.android",
+            "com.zhiliaoapp.musically"
+          ],
+          "enableBase64ShareAndroid": true
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "d223eb9e-ef8f-47b9-9f0e-6bfb657f9f77"
+      }
+    }
+  }
+}
