@@ -27,13 +27,7 @@ const PostHeader = React.memo(({ data, isQoute, isPerview, refIndex, threadOwner
     const receiverId = receiver.id;
     const receiverUsername = receiver.username;
     const layout = data?.layout;
-
-    const openProfile = useCallback(() => {
-        if (!isAnon) {
-            navigation.push('ProfilePage', { id: sender.id, data: sender });
-        }
-    }, [isAnon, sender, navigation]);
-
+    
     const openMoreMenu = useCallback(async () => {
         global.DraggableMenuController.open();
         const MoreMenuItems = (await import('../draggable-menus/MorePostActions')).default;
@@ -44,9 +38,6 @@ const PostHeader = React.memo(({ data, isQoute, isPerview, refIndex, threadOwner
 
     return (
         <>
-            <TouchableButton disabled={data.is_anon} style={[styles.profileImageContainer]} onPress={openProfile}>
-                <Image style={[styles.postHeaderImage, isQoute && styles.qouteImage]} source={{ uri: imageUri }} />
-            </TouchableButton>
             {!isQoute && !isPerview && <MoreButton openMoreMenu={openMoreMenu} />}
             <View style={[styles.postHeaderSection, isQoute && styles.qouteHeader, isPerview && styles.perviewMain]}>
                 <View style={[styles.usernameContainer, isPerview && styles.perviewHeader]}>
@@ -81,6 +72,24 @@ const PostHeader = React.memo(({ data, isQoute, isPerview, refIndex, threadOwner
                 }
             </View>
         </>
+    );
+});
+
+export const PostImage = React.memo(({ data, isQoute, navigation }) => {
+    const sender = data?.sender || data?.user || {};
+
+    const imageUri = sender.image;
+    const isAnon = data?.is_anon;
+    const openProfile = useCallback(() => {
+        if (!isAnon) {
+            navigation.push('ProfilePage', { id: sender.id, data: sender });
+        }
+    }, [isAnon, sender, navigation]);
+
+    return (
+        <TouchableButton disabled={data.is_anon} style={[styles.profileImageContainer]} onPress={openProfile}>
+            <Image style={[styles.postHeaderImage, isQoute && styles.qouteImage]} source={{ uri: imageUri }} />
+        </TouchableButton>
     );
 });
 
@@ -126,6 +135,7 @@ const styles = createStyles({
         opacity: 0.5,
         width: 40,
         height: 25,
+        marginTop: 10,
     },
     moreIcon: {
         width: 18,
@@ -137,10 +147,8 @@ const styles = createStyles({
         tintColor: colors.posts.icons,
     },
     postHeaderSection: {
-        paddingTop: 2,
         zIndex: 0,
-        minHeight: 47,
-        marginLeft: 45,
+        paddingHorizontal: 15,
     },
     qouteHeader: {
         marginLeft: 35,
@@ -153,7 +161,6 @@ const styles = createStyles({
     },
     usernameContainer: {
         flexDirection: 'row',
-        marginLeft: 10,
     },
     perviewHeader: {
         flexDirection: 'column',

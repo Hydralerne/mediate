@@ -53,9 +53,7 @@ const styles = createStyles({
         paddingVertical: 20,
     },
     threadContainer: {
-        borderBottomColor: colors.posts.threadBorder,
-        borderBottomWidth: 1,
-        paddingVertical: 11,
+        paddingVertical: 10,
         overflow: 'hidden'
     }
 });

@@ -11,7 +11,6 @@ const SignedOutNavigator = () => {
                 name="MainOutLog"
                 component={MainScreen}
                 options={{
-                    // presentation: 'modal',
                     headerShown: false,
                     cardStyle: { backgroundColor: '#000000' }
                 }}

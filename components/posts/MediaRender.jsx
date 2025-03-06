@@ -131,10 +131,7 @@ const styles = createStyles({
         height: 'auto',
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 15,
         overflow: 'hidden',
-        borderColor: colors.lightBorder,
-        borderWidth: 1,
         marginTop: 5,
         marginBottom: 5,
         zIndex: 999
@@ -142,7 +139,6 @@ const styles = createStyles({
     drawingImage: {
         width: '100%',
         aspectRatio: 2,
-        borderRadius: 15,
         flex: 1,
         resizeMode: 'contain',
     },

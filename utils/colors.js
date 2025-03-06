@@ -31,7 +31,7 @@ const rawColors = {
     blackRGB: { dark: 0, light: 255 },
     whiteRGB: { dark: 255, light: 0 },
     headerBack: '#010101',
-    main: '#9c96ff',
+    main: '#394eff',
     mainBold: { dark: '#2a2a2e', light: '#bfbfc5' },
     askButton: { dark: '#222', light: '#f0f0f0' },
     lightBorder: { dark: 'rgba(255,255,255,0.1)', light: 'rgba(0,0,0,0.075)' },

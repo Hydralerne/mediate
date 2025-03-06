@@ -54,8 +54,6 @@ const TabItem = React.memo(({ route, isFocused, options, handlePress, Icon, Heav
 
 export const CustomTabBar = React.memo(({ state, descriptors, navigation }) => {
     const { userData } = useContext(UserContext);
-    const [isMsgsCount, setIsMsgsCount] = useState(true);
-    const [isNotisCount, setIsNotisCount] = useState(true);
     const [isFocused, setIsFocused] = useState('HomeTab')
     const counts = userData?.data?.counts;
 
@@ -106,38 +104,17 @@ export const CustomTabBar = React.memo(({ state, descriptors, navigation }) => {
             )}
             <PlayerBottom />
             <View style={styles.innerTabBarContainer}>
-                {state.routes.map((route, index) => {
-                    const { options } = descriptors[route.key];
-
-                    const { light: Icon, heavy: HeavyIcon } = icons[route.name] || icons.HomeTab;
-                    let CountsContainer = () => null;
-
-                    if (route.name === 'NotificationsTab' && counts?.notifications > 0 && isNotisCount) {
-                        CountsContainer = () => (
-                            <View style={styles.countsContiner}>
-                                <Text style={styles.countsText}>{counts?.notifications}</Text>
-                            </View>
-                        );
-                    }
-
-                    if (route.name === 'MessagesTab' && counts?.messages > 0 && isMsgsCount) {
-                        CountsContainer = () => (
-                            <View style={styles.countsContiner}>
-                                <Text style={styles.countsText}>{counts?.messages}</Text>
-                            </View>
-                        );
-                    }
-
+                {Object.entries(icons).map(([iconName, { light: Icon, heavy: HeavyIcon }], index) => {
+                    const route = { name: iconName, key: iconName };
                     return (
                         <TabItem
                             key={index}
                             route={route}
-                            isFocused={route.name == isFocused}
-                            options={options}
+                            isFocused={isFocused === iconName}
                             handlePress={handlePress}
                             Icon={Icon}
                             HeavyIcon={HeavyIcon}
-                            CountsContainer={CountsContainer}
+                            CountsContainer={() => <View />}
                         />
                     );
                 })}

@@ -56,8 +56,9 @@ const qoute = createStyles({
         borderRadius: 15,
         zIndex: 9,
         paddingBottom: 5,
-        marginBottom: 8,
-        marginTop: 5
+        marginBottom: 4,
+        marginTop: 5,
+        marginHorizontal: 15,
     }
 })
 

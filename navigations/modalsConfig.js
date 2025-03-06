@@ -3,7 +3,6 @@ import { lazy } from 'react';
 
 const MusicPage = lazy(() => import('../modals/Music'));
 const MoviesPage = lazy(() => import('../modals/Movies'));
-const BoardModal = lazy(() => import('../components/media-pages/Draw'));
 const InboxModal = lazy(() => import('../modals/SendBox'));
 const StoriesPage = lazy(() => import('../modals/Stories'));
 const SingleStory = lazy(() => import('../modals/SingleStory'));
@@ -46,15 +45,6 @@ const modalsConfig = [
         props: {
             presentation: 'modal',
             animation: isAndroid ? 'slide_from_bottom' : undefined
-        }
-    },
-    {
-        name: 'BoardModal',
-        component: BoardModal,
-        props: {
-            presentation: 'modal',
-            gestureEnabled: false,
-            animation: 'slide_from_bottom'
         }
     },
     {

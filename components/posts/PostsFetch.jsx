@@ -9,7 +9,7 @@ import { RefreshControl } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import Animated from 'react-native-reanimated';
 
-const PostsBody = ({ props, endpoint, style, tracking, refIndex, isProfile, animated, onEmpty, renmaited, onScroll, offset = 185 }) => {
+const PostsBody = ({ props, endpoint, style, tracking, refIndex, isProfile, animated,header, onEmpty, renmaited, onScroll, offset = 185 }) => {
     const ref = useRef(null)
     const navigation = useNavigation()
 
@@ -73,6 +73,7 @@ const PostsBody = ({ props, endpoint, style, tracking, refIndex, isProfile, anim
                     {loadingMore && <ActivityIndicator size="small" />}
                 </View>
             }
+            ListHeaderComponent={header}
             extraData={trigger}
             onViewableItemsChanged={handleViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}

@@ -10,7 +10,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useDeepLinking } from '../hooks/useDeepLinking';
 import { useNavigationContext } from '../contexts/NavigationContext';
 import { useNavigation } from '@react-navigation/native';
-import DraggableMenu from '../components/global/draggableMenu';
 // import { useNotifications } from '../hooks/useNotifications';
 
 const { height } = Dimensions.get('window');
@@ -56,7 +55,7 @@ const Main = () => {
             console.log(e);
         }
     };
-    
+
     // useNotifications(isNavigationReady, handleNotificationNavigation);
 
     useDeepLinking();
@@ -78,10 +77,7 @@ const Main = () => {
             <StatusBar style={'light'} translucent backgroundColor="transparent" />
             {
                 isLogedIn ?
-                    <>
-                        <RootNavigator />
-                        <DraggableMenu />
-                    </>
+                    <RootNavigator />
                     :
                     <SignedOutNavigator />
             }

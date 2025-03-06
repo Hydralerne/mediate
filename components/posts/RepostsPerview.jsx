@@ -41,7 +41,8 @@ const repost = createStyles({
         width: 22,
         height: 22,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        borderRadius: 50,
     },
     repostText: {
         color: colors.mainColor,

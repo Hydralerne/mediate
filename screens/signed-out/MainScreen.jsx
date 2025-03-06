@@ -107,17 +107,23 @@ const styles = createStyles({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#000000'
+        backgroundColor: '#000000',
+        width: '100%',
+        height: '100%',
+        position: 'relative',
+        overflow: 'hidden'
     },
     video: {
-        width: '140%',
-        height: '102%',
-        marginTop: -5,
         position: 'absolute',
-        resizeMode: 'cover',
-        zIndex: 0,
-        top: 0
-
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0,
+        width: '290%',
+        height: '100%',
+        marginTop: '0%',
+        objectFit: 'cover',
+        zIndex: 0
     },
     overlay: {
         position: 'absolute',

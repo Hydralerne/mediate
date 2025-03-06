@@ -3,7 +3,6 @@ import React, { memo, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text, Dimensions, Animated as ReactAnimated, Platform } from 'react-native';
 import HomeHeader from '../../components/home/Header'
 import PostsBody from '../../components/posts/PostsFetch'
-import PostButton from '../../components/home/PostingButton'
 import { useSharedValue } from 'react-native-reanimated';
 import { useNavigationContext } from '../../contexts/NavigationContext';
 import useTranslation from '../../hooks/useTranslation';

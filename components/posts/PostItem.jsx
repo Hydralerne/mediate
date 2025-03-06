@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useMemo, lazy, Suspense } from 'react';
 import { View, Text, StyleSheet, TouchableNativeFeedback, Linking, ActivityIndicator } from 'react-native';
-import PostHeader from './PostHeader';
+import PostHeader, { PostImage } from './PostHeader';
 import PostFooter from './PostFooter';
 import colors from '../../utils/colors';
 
@@ -85,14 +85,16 @@ const PostItem = React.memo(({
                     isPerview && { paddingBottom: 0 },
                 ]}
             >
-                <PostHeader
-                    threadOwner={threadOwner}
-                    refIndex={refIndex}
-                    isPerview={isPerview}
-                    navigation={navigation}
-                    data={data}
-                />
+
+                <PostImage data={data} isQoute={false} navigation={navigation} />
                 <View style={[styles.postBodyContainer, isPerview && styles.perviewBody]}>
+                    <PostHeader
+                        threadOwner={threadOwner}
+                        refIndex={refIndex}
+                        isPerview={isPerview}
+                        navigation={navigation}
+                        data={data}
+                    />
                     {data.text && (
                         <Text
                             numberOfLines={!isPerview ? 10 : null}
@@ -151,7 +153,7 @@ const styles = createStyles({
     },
     innerPostContainer: {
         paddingHorizontal: 15,
-        paddingBottom: 24,
+        paddingBottom: 15,
     },
     lastPost: {
         paddingBottom: 0,
@@ -159,7 +161,10 @@ const styles = createStyles({
     postBodyContainer: {
         flex: 1,
         marginLeft: 54.5,
-        marginTop: -26,
+        backgroundColor: colors.secoundBackground,
+        // paddingHorizontal: 15,
+        paddingVertical: 15,
+        borderRadius: 20,
     },
     perviewBody: {
         marginLeft: 0,
@@ -169,7 +174,9 @@ const styles = createStyles({
         fontSize: 14.5,
         lineHeight: 20,
         paddingBottom: 5,
-        fontFamily: 'main'
+        fontFamily: 'main',
+        marginTop: 8,
+        paddingHorizontal: 15,
     },
     perviewText: {
         fontSize: 17,

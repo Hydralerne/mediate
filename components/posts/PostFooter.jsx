@@ -258,9 +258,10 @@ const styles = createStyles({
     },
     postFooter: {
         height: 20,
-        marginTop: 5,
+        marginTop: 10,
         flexDirection: 'row',
         zIndex: 9,
+        paddingHorizontal: 15,
     },
     innerPostFooter: {
         flexDirection: 'row',
@@ -270,7 +271,6 @@ const styles = createStyles({
     },
     leftSection: {
         flexDirection: 'row',
-        width: '30%',
     },
     rightSection: {
         flexDirection: 'row',
@@ -297,7 +297,7 @@ const styles = createStyles({
         position: 'relative',
         marginLeft: 3,
         minWidth: 6,
-        marginRight: 20,
+        marginRight: 10,
         fontFamily: 'main'
     },
 });

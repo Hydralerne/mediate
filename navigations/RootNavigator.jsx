@@ -1,52 +1,46 @@
 import React, { lazy, Suspense } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import TabsNavigator from './TabsNavigator';
-import modalsConfig from './modalsConfig';
 import PageLoader from '../loaders/PageLoager';
+import Main from '../screens/home/Main';
+import Dashboard from '../screens/dashboard/Dashboard';
+import ModernDashboard from '../screens/dashboard/ModernDashboard';
+import CreatorDashboard from '../screens/dashboard/CreatorDashboard';
 
 const Stack = createNativeStackNavigator();
 
 const SettingsStack = lazy(() => import('./stacks/SettingsStack'));
-const IDStack = lazy(() => import('./stacks/IDStack'));
+
+const SettingsScreen = React.memo(({ ...props }) => (
+    <Suspense fallback={<PageLoader />}>
+        <SettingsStack {...props} />
+    </Suspense>
+));
 
 const RootNavigator = () => {
+    const defaultScreenOptions = {
+        headerShown: false,
+        animation: 'slide_from_right',
+        contentStyle: { backgroundColor: 'transparent' },
+    };
+
+    const settingsScreenOptions = {
+        ...defaultScreenOptions,
+        fullScreenGestureEnabled: true,
+    };
+
     return (
-        <Stack.Navigator>
+        <Stack.Navigator screenOptions={defaultScreenOptions}>
             <Stack.Screen
-                name="MainTabs"
-                component={TabsNavigator}
-                options={{ headerShown: false }}
+                name="Home"
+                component={Main}
             />
             <Stack.Screen
                 name="Settings"
-                options={{ headerShown: false, fullScreenGestureEnabled: true }}
-            >
-                {(props) => (
-                    <Suspense fallback={<PageLoader />}>
-                        <SettingsStack {...props} />
-                    </Suspense>
-                )}
-            </Stack.Screen>
-            <Stack.Screen
-                name="IDStack"
-                options={{ headerShown: false, fullScreenGestureEnabled: true }}
-            >
-                {(props) => (
-                    <Suspense fallback={<PageLoader />}>
-                        <IDStack {...props} />
-                    </Suspense>
-                )}
-            </Stack.Screen>
-            {modalsConfig.map(({ name, component: Component, props }) => (
-                <Stack.Screen key={name} name={name} options={{ headerShown: false, ...props }}>
-                    {(navProps) => (
-                        <Suspense fallback={<PageLoader />}>
-                            <Component {...navProps} />
-                        </Suspense>
-                    )}
-                </Stack.Screen>
-            ))}
+                component={SettingsScreen}
+                options={settingsScreenOptions}
+            />
         </Stack.Navigator>
     );
 };
-export default RootNavigator;
+
+export default React.memo(RootNavigator);

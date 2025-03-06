@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "656382689992",
-    "project_id": "onvo-33de2",
-    "storage_bucket": "onvo-33de2.firebasestorage.app"
+    "project_number": "902170513794",
+    "project_id": "oblien",
+    "storage_bucket": "oblien.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:656382689992:android:d017868522456040ab1bfd",
+        "mobilesdk_app_id": "1:902170513794:android:c9e80a86b65859dfb57f9b",
         "android_client_info": {
-          "package_name": "me.onvo.onvo"
+          "package_name": "com.oblien.app"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "656382689992-cjivl8oamnfg6upk5bcv0q1bm259lub6.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAqC7Hy51jScikAcrKZldXiwqjx_q6V6yE"
+          "current_key": "AIzaSyBapW7S84nD_izrbuz155nyokDoj8uQnBc"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "656382689992-cjivl8oamnfg6upk5bcv0q1bm259lub6.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

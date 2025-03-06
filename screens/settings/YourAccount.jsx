@@ -2,7 +2,7 @@ import { Alert, Image, Linking, ScrollView, StyleSheet, Text, View } from 'react
 import PagesHeader from '../../components/global/PagesHeader'
 import colors from '../../utils/colors'
 import TouchableButton from '../../components/global/ButtonTap'
-import Deactive from '../../components/draggable-menus/Deactive'
+// import Deactive from '../../components/draggable-menus/Deactive'
 import { UserContext } from '../../contexts/UserContext'
 import { useContext } from 'react'
 import { request } from '../../utils/requests'

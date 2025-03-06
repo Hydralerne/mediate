@@ -1,83 +1,130 @@
-import React, { createContext, useContext, useRef, useState, useCallback } from 'react';
-import { StyleSheet } from 'react-native';
-import { BottomSheetModal, BottomSheetModalProvider, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import Animated, { Easing } from 'react-native-reanimated';
+import React, { createContext, useContext, useState, useRef, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, Keyboard, TouchableWithoutFeedback, Image } from 'react-native';
+import BottomSheet, { BottomSheetView, BottomSheetBackdrop, BottomSheetTextInput } from '@gorhom/bottom-sheet';
 
 const BottomSheetContext = createContext();
 
+export const useBottomSheet = () => useContext(BottomSheetContext);
+
 export const BottomSheetProvider = ({ children }) => {
     const bottomSheetRef = useRef(null);
+    const [isOpen, setIsOpen] = useState(false);
     const [content, setContent] = useState(null);
-    const [style, setStyle] = useState(null)
+    const [snapPointsConfig, setSnapPointsConfig] = useState(['35%']);
+    const unmountTimeoutRef = useRef(null);
+    
+    // Simple flag to control unmounting
+    const [shouldUnmount, setShouldUnmount] = useState(true);
 
-    const openBottomSheet = useCallback(({ content, style }) => {
-        if (content) {
-            setContent(content)
-        }
-        bottomSheetRef.current?.present()
+    // Clean up timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (unmountTimeoutRef.current) {
+                clearTimeout(unmountTimeoutRef.current);
+            }
+        };
     }, []);
 
-    const handleDismiss = () => {
-        setTimeout(() => setContent(null), 200)
-    }
-
-    const animationConfigs = {
-        duration: 200,
-        easing: Easing.out(Easing.exp),
+    // Open with custom content and optional custom snap points
+    const openBottomSheet = (contentComponent, snapPoints = ['35%']) => {
+        // Clear any pending unmount timeout
+        if (unmountTimeoutRef.current) {
+            clearTimeout(unmountTimeoutRef.current);
+            unmountTimeoutRef.current = null;
+        }
+        
+        // First set the content
+        setContent(contentComponent);
+        setSnapPointsConfig(snapPoints);
+        
+        // Prevent unmounting while sheet is open
+        setShouldUnmount(false);
+        
+        // Then open the sheet
+        requestAnimationFrame(() => {
+            bottomSheetRef.current?.expand();
+            setIsOpen(true);
+        });
     };
 
-    const renderBackdrop = useCallback((props) => (
-        <BottomSheetBackdrop
-            {...props}
-            opacity={0.5}
-            appearsOnIndex={0}
-            disappearsOnIndex={-1}
-            style={styles.backdrop}
-        />
-    ), []);
+    const closeBottomSheet = () => {
+        // Just close the sheet, don't unmount yet
+        bottomSheetRef.current?.close();
+        setIsOpen(false);
+        Keyboard.dismiss();
+    };
+
+    // Handle actual unmounting separately from closing
+    const handleSheetChanges = (index) => {
+        if (index === -1) {
+            // Sheet is fully closed, wait a bit then allow unmounting
+            // Clear any existing timeout first
+            if (unmountTimeoutRef.current) {
+                clearTimeout(unmountTimeoutRef.current);
+            }
+            
+            unmountTimeoutRef.current = setTimeout(() => {
+                setShouldUnmount(true);
+                unmountTimeoutRef.current = null;
+            }, 300);
+        } else {
+            // If sheet is opening, cancel any pending unmount
+            if (unmountTimeoutRef.current) {
+                clearTimeout(unmountTimeoutRef.current);
+                unmountTimeoutRef.current = null;
+            }
+            setShouldUnmount(false);
+        }
+    };
+
+    // Effect to clear content when unmounting is allowed and sheet is closed
+    useEffect(() => {
+        if (shouldUnmount && !isOpen) {
+            setContent(null);
+        }
+    }, [shouldUnmount, isOpen]);
 
     return (
-        <BottomSheetModalProvider>
-            <BottomSheetContext.Provider value={{ openBottomSheet }}>
-                {children}
-                <BottomSheetModal
-                    ref={bottomSheetRef}
-                    handleStyle={styles.handle}
-                    backgroundStyle={[styles.content, style]}
-                    handleIndicatorStyle={styles.handleIndicator}
-                    backdropComponent={renderBackdrop}
-                    animationConfigs={animationConfigs}
-                    onDismiss={handleDismiss}
-                >
-                    <BottomSheetView style={[styles.content, style]}>
-                        {content}
-                    </BottomSheetView>
-                </BottomSheetModal>
-            </BottomSheetContext.Provider>
-        </BottomSheetModalProvider>
+        <BottomSheetContext.Provider value={{ openBottomSheet, closeBottomSheet }}>
+            {children}
+            <BottomSheet
+                ref={bottomSheetRef}
+                index={-1}
+                snapPoints={snapPointsConfig}
+                enablePanDownToClose
+                enableHandlePanningGesture
+                enableContentPanningGesture
+                onChange={handleSheetChanges}
+                backdropComponent={(props) => (
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+                    </TouchableWithoutFeedback>
+                )}
+                onClose={() => {
+                    setIsOpen(false);
+                }}
+                handleIndicatorStyle={styles.bottomSheetIndicator}
+                backgroundStyle={styles.bottomSheetBackground}
+            >
+                <BottomSheetView style={styles.bottomSheetView}>
+                    {content}
+                </BottomSheetView>
+            </BottomSheet>
+        </BottomSheetContext.Provider>
     );
 };
 
-export const useBottomSheet = () => useContext(BottomSheetContext);
-
 const styles = StyleSheet.create({
-    content: {
+    bottomSheetView: {
         flex: 1,
-        minHeight: 350,
-        backgroundColor: '#000',
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
     },
-    handleIndicator: {
-        backgroundColor: 'rgba(255,255,255,0.25)',
+    bottomSheetBackground: {
+        backgroundColor: 'white',
     },
-    handle: {
-        backgroundColor: 'transparent',
-    },
-    backdrop: {
-        position: 'absolute',
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: '#313131',
-        opacity: 0.5
-    },
+    // bottomSheetIndicator: {
+    //     backgroundColor: 'rgba(0,0,0,0.3)',
+    //     // width: 40,
+    // },
 });
+
+export default BottomSheetProvider;
