@@ -5,6 +5,7 @@ import { OnboardingContext } from '../../contexts/OnboardingContext';
 import { Animated } from 'react-native';
 import { useBottomSheet } from '../../contexts/BottomSheet';
 import { useNavigation } from '@react-navigation/native';
+import Wrapper from './Wrapper';
 // Import Expo's in-app purchases module
 // import * as InAppPurchases from 'expo-in-app-purchases';
 
@@ -41,7 +42,7 @@ const OrderItem = ({ title, description, price, isDiscount }) => (
             {description && <Text style={styles.orderItemDescription}>{description}</Text>}
         </View>
         <Text style={[
-            styles.orderItemPrice, 
+            styles.orderItemPrice,
             isDiscount && styles.discountPrice
         ]}>
             {isDiscount ? '-' : ''}${price}
@@ -52,10 +53,10 @@ const OrderItem = ({ title, description, price, isDiscount }) => (
 // Receipt component for bottom sheet
 const ReceiptSheet = ({ orderDetails, onClose }) => {
     const { pricingPlan, domainInfo, domainType } = orderDetails;
-    
+
     const getOrderItems = () => {
         const items = [];
-        
+
         // Add subscription plan
         if (pricingPlan === 'starter') {
             items.push({ title: 'Starter Plan', description: '14-day free trial', price: '0.00', isDiscount: false });
@@ -64,59 +65,59 @@ const ReceiptSheet = ({ orderDetails, onClose }) => {
         } else if (pricingPlan === 'business') {
             items.push({ title: 'Business Plan', description: '14-day free trial', price: '0.00', isDiscount: false });
         }
-        
+
         // Add domain if custom
         if (domainType === 'custom' && domainInfo.value) {
-            items.push({ 
-                title: `Domain: ${domainInfo.value}`, 
-                description: '1 year registration', 
-                price: domainInfo.price || '12.00', 
-                isDiscount: false 
+            items.push({
+                title: `Domain: ${domainInfo.value}`,
+                description: '1 year registration',
+                price: domainInfo.price || '12.00',
+                isDiscount: false
             });
         }
-        
+
         return items;
     };
-    
+
     const calculateTotal = () => {
         let total = 0;
-        
+
         // During trial, subscription is free
         // Add domain cost if custom
         if (domainType === 'custom' && domainInfo.value) {
             total += parseFloat(domainInfo.price || 12);
         }
-        
+
         return total.toFixed(2);
     };
-    
+
     return (
         <View style={styles.receiptContainer}>
             <View style={styles.receiptHeader}>
                 <Text style={styles.receiptTitle}>Payment Receipt</Text>
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                    <Image 
-                        source={require('../../assets/icons/home/close remove-802-1662363936.png')} 
-                        style={styles.closeIcon} 
+                    <Image
+                        source={require('../../assets/icons/home/close remove-802-1662363936.png')}
+                        style={styles.closeIcon}
                     />
                 </TouchableOpacity>
             </View>
-            
+
             <View style={styles.receiptContent}>
                 <View style={styles.receiptLogo}>
-                    <Image 
-                        source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                        style={styles.successIcon} 
+                    <Image
+                        source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                        style={styles.successIcon}
                     />
                     <Text style={styles.successText}>Payment Successful</Text>
                 </View>
-                
+
                 <View style={styles.receiptDivider} />
-                
+
                 <View style={styles.receiptOrderItems}>
                     <Text style={styles.receiptSectionTitle}>Order Summary</Text>
                     {getOrderItems().map((item, index) => (
-                        <OrderItem 
+                        <OrderItem
                             key={index}
                             title={item.title}
                             description={item.description}
@@ -125,14 +126,14 @@ const ReceiptSheet = ({ orderDetails, onClose }) => {
                         />
                     ))}
                 </View>
-                
+
                 <View style={styles.receiptDivider} />
-                
+
                 <View style={styles.receiptTotal}>
                     <Text style={styles.totalLabel}>Total Charged Today</Text>
                     <Text style={styles.totalAmount}>${calculateTotal()}</Text>
                 </View>
-                
+
                 <View style={styles.receiptFooter}>
                     <Text style={styles.receiptNote}>
                         Your 14-day free trial starts today. You won't be charged for the subscription until {new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}.
@@ -149,35 +150,34 @@ const ReceiptSheet = ({ orderDetails, onClose }) => {
     );
 };
 
-const PaymentScreen = memo(() => {
-    const navigation = useNavigation();
+const PaymentScreen = memo(({ navigation }) => {
     const { pricingPlan, domainType, domainInfo, setPaymentComplete } = useContext(OnboardingContext);
     const { openBottomSheet, closeBottomSheet } = useBottomSheet();
-    
+
     // Card details state
     const [cardNumber, setCardNumber] = useState('');
     const [cardName, setCardName] = useState('');
     const [expiryDate, setExpiryDate] = useState('');
     const [cvv, setCvv] = useState('');
     const [zipCode, setZipCode] = useState('');
-    
+
     // Validation state
     const [errors, setErrors] = useState({});
     const [isProcessing, setIsProcessing] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'store'
-    
+
     // Animation values
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const scaleAnim = useRef(new Animated.Value(0.95)).current;
-    
+
     // Initialize in-app purchases
     useEffect(() => {
         const setupPurchases = async () => {
             try {
                 await InAppPurchases.connectAsync();
                 console.log('Connected to store');
-                
+
                 // Set up subscription items
                 // These IDs should match what you've set up in App Store Connect / Play Console
                 const subscriptionItems = Platform.select({
@@ -193,29 +193,29 @@ const PaymentScreen = memo(() => {
                     ],
                     default: []
                 });
-                
+
                 // Get subscription products info
                 const { responseCode, results } = await InAppPurchases.getProductsAsync(subscriptionItems);
-                
+
                 if (responseCode === InAppPurchases.IAPResponseCode.OK) {
                     console.log('Products loaded:', results);
                 }
-                
+
                 // Set up purchase listener
                 InAppPurchases.setPurchaseListener(({ responseCode, results, errorCode }) => {
                     if (responseCode === InAppPurchases.IAPResponseCode.OK) {
                         results.forEach(purchase => {
                             if (!purchase.acknowledged) {
                                 console.log('Purchase successful:', purchase);
-                                
+
                                 // Finish the transaction
                                 InAppPurchases.finishTransactionAsync(purchase, true);
-                                
+
                                 // Update app state
                                 setIsProcessing(false);
                                 setIsComplete(true);
                                 setPaymentComplete(true);
-                                
+
                                 // Navigate to success or next screen
                                 navigation.navigate('OnboardingSuccess');
                             }
@@ -242,20 +242,20 @@ const PaymentScreen = memo(() => {
             })
         ]).start();
         // setupPurchases();
-        
+
         return () => {
             // Disconnect when component unmounts
             // InAppPurchases.disconnectAsync();
         };
     }, []);
-    
+
     // Format card number with spaces
     const formatCardNumber = (text) => {
         const cleaned = text.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
         const formatted = cleaned.match(/.{1,4}/g)?.join(' ') || cleaned;
         return formatted;
     };
-    
+
     // Format expiry date with slash
     const formatExpiryDate = (text) => {
         const cleaned = text.replace(/[^0-9]/gi, '');
@@ -264,77 +264,77 @@ const PaymentScreen = memo(() => {
         }
         return cleaned;
     };
-    
+
     // Validate form
     const validateForm = () => {
         // Skip validation for store payments
         if (paymentMethod === 'store') {
             return true;
         }
-        
+
         const newErrors = {};
-        
+
         if (!cardNumber || cardNumber.replace(/\s+/g, '').length < 16) {
             newErrors.cardNumber = 'Please enter a valid card number';
         }
-        
+
         if (!cardName) {
             newErrors.cardName = 'Please enter the name on card';
         }
-        
+
         if (!expiryDate || expiryDate.length < 5) {
             newErrors.expiryDate = 'Please enter a valid expiry date';
         } else {
             const [month, year] = expiryDate.split('/');
             const currentYear = new Date().getFullYear() % 100;
             const currentMonth = new Date().getMonth() + 1;
-            
+
             if (parseInt(month) < 1 || parseInt(month) > 12) {
                 newErrors.expiryDate = 'Invalid month';
-            } else if (parseInt(year) < currentYear || 
-                      (parseInt(year) === currentYear && parseInt(month) < currentMonth)) {
+            } else if (parseInt(year) < currentYear ||
+                (parseInt(year) === currentYear && parseInt(month) < currentMonth)) {
                 newErrors.expiryDate = 'Card has expired';
             }
         }
-        
+
         if (!cvv || cvv.length < 3) {
             newErrors.cvv = 'Please enter a valid CVV';
         }
-        
+
         if (!zipCode || zipCode.length < 5) {
             newErrors.zipCode = 'Please enter a valid ZIP code';
         }
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
-    
+
     // Handle payment submission via card
     const handleCardPayment = () => {
         if (validateForm()) {
             setIsProcessing(true);
-            
+
             // Simulate payment processing
             setTimeout(() => {
                 setIsProcessing(false);
                 setIsComplete(true);
                 setPaymentComplete(true);
-                
+
                 // Navigate to success screen
                 navigation.navigate('OnboardingSuccess');
             }, 2000);
         }
     };
-    
+
     // Handle App Store / Play Store payment
     const handleStorePurchase = async () => {
         setPaymentMethod('store');
         setIsProcessing(true);
-        
+
         try {
             // Determine which product ID to use based on selected plan
             let productId;
-            switch(pricingPlan) {
+            switch (pricingPlan) {
                 case 'starter':
                     productId = 'com.yourapp.starter.monthly';
                     break;
@@ -346,34 +346,34 @@ const PaymentScreen = memo(() => {
                     productId = 'com.yourapp.pro.monthly';
                     break;
             }
-            
+
             // Purchase the subscription
             await InAppPurchases.purchaseItemAsync(productId);
-            
+
             // Note: The purchase result will be handled by the purchase listener
-            
+
         } catch (error) {
             console.error('Purchase error:', error);
             setIsProcessing(false);
         }
     };
-    
+
     // Calculate total amount
     const calculateTotal = () => {
         let total = 0;
-        
+
         // During trial, subscription is free
         // Add domain cost if custom
         if (domainType === 'custom' && domainInfo.value) {
             total += parseFloat(domainInfo.price || 12);
         }
-        
+
         return total.toFixed(2);
     };
-    
+
     // Get plan details
     const getPlanDetails = () => {
-        switch(pricingPlan) {
+        switch (pricingPlan) {
             case 'starter':
                 return { name: 'Starter Plan', price: 9, features: ['Custom domain', 'Basic analytics', 'Up to 5 content sections'] };
             case 'pro':
@@ -384,219 +384,217 @@ const PaymentScreen = memo(() => {
                 return { name: 'Pro Plan', price: 19, features: ['Everything in Starter', 'Advanced analytics', 'Unlimited content sections'] };
         }
     };
-    
+
     const planDetails = getPlanDetails();
-    
+
     return (
-        <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <Animated.View 
-                    style={[
-                        styles.innerContainer,
-                        { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
-                    ]}
-                >
-                    <View style={styles.titleContainer}>
-                        <Text style={styles.title}>Complete Your Order</Text>
-                        <Text style={styles.subtitle}>
-                            Secure payment for your subscription and domain
-                        </Text>
-                    </View>
-                    
-                    <View style={styles.content}>
-                        {/* Order Summary - Enhanced Design */}
-                        <View style={styles.orderSummaryContainer}>
-                            <View style={styles.orderSummaryHeader}>
-                                <Text style={styles.sectionTitle}>Order Summary</Text>
-                                <Image 
-                                    source={require('../../assets/icons/home/receipt-0-1693375323.png')} 
-                                    style={styles.receiptIcon} 
-                                />
-                            </View>
-                            
-                            <View style={styles.orderSummary}>
-                                <View style={styles.planCard}>
-                                    <View style={styles.planHeader}>
-                                        <Text style={styles.planName}>{planDetails.name}</Text>
-                                        <Text style={styles.planPrice}>${planDetails.price}/mo</Text>
-                                    </View>
-                                    
-                                    <View style={styles.planFeatures}>
-                                        {planDetails.features.map((feature, index) => (
-                                            <View key={index} style={styles.featureRow}>
-                                                <Image 
-                                                    source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                                                    style={styles.featureIcon} 
-                                                />
-                                                <Text style={styles.featureText}>{feature}</Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                    
-                                    <View style={styles.trialBadge}>
-                                        <Text style={styles.trialText}>14-day free trial</Text>
-                                    </View>
+        <Wrapper allowScroll={true} navigation={navigation}>
+            <Animated.View
+                style={[
+                    styles.innerContainer,
+                    { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
+                ]}
+            >
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Complete Your Order</Text>
+                    <Text style={styles.subtitle}>
+                        Secure payment for your subscription and domain
+                    </Text>
+                </View>
+
+                <View style={styles.content}>
+                    {/* Order Summary - Enhanced Design */}
+                    <View style={styles.orderSummaryContainer}>
+                        <View style={styles.orderSummaryHeader}>
+                            <Text style={styles.sectionTitle}>Order Summary</Text>
+                            <Image
+                                source={require('../../assets/icons/home/receipt-0-1693375323.png')}
+                                style={styles.receiptIcon}
+                            />
+                        </View>
+
+                        <View style={styles.orderSummary}>
+                            <View style={styles.planCard}>
+                                <View style={styles.planHeader}>
+                                    <Text style={styles.planName}>{planDetails.name}</Text>
+                                    <Text style={styles.planPrice}>${planDetails.price}/mo</Text>
                                 </View>
-                                
-                                {domainType === 'custom' && domainInfo && domainInfo.value && (
-                                    <View style={styles.domainCard}>
-                                        <View style={styles.domainHeader}>
-                                            <Text style={styles.domainName}>{domainInfo.value}</Text>
-                                            <Text style={styles.domainPrice}>${domainInfo.price || 12}/year</Text>
+
+                                <View style={styles.planFeatures}>
+                                    {planDetails.features.map((feature, index) => (
+                                        <View key={index} style={styles.featureRow}>
+                                            <Image
+                                                source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                                                style={styles.featureIcon}
+                                            />
+                                            <Text style={styles.featureText}>{feature}</Text>
                                         </View>
-                                        <Text style={styles.domainDescription}>1 year domain registration</Text>
-                                    </View>
-                                )}
-                                
-                                <View style={styles.totalContainer}>
-                                    <Text style={styles.totalLabel}>Total Today</Text>
-                                    <Text style={styles.totalAmount}>${calculateTotal()}</Text>
+                                    ))}
+                                </View>
+
+                                <View style={styles.trialBadge}>
+                                    <Text style={styles.trialText}>14-day free trial</Text>
                                 </View>
                             </View>
-                            
-                            <View style={styles.trialNoteContainer}>
-                                <Image 
-                                    source={require('../../assets/icons/home/info circle-83-1658234612.png')} 
-                                    style={styles.infoIcon} 
-                                />
-                                <Text style={styles.trialNote}>
-                                    Your subscription will start with a 14-day free trial. You won't be charged until {new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}.
-                                </Text>
+
+                            {domainType === 'custom' && domainInfo && domainInfo.value && (
+                                <View style={styles.domainCard}>
+                                    <View style={styles.domainHeader}>
+                                        <Text style={styles.domainName}>{domainInfo.value}</Text>
+                                        <Text style={styles.domainPrice}>${domainInfo.price || 12}/year</Text>
+                                    </View>
+                                    <Text style={styles.domainDescription}>1 year domain registration</Text>
+                                </View>
+                            )}
+
+                            <View style={styles.totalContainer}>
+                                <Text style={styles.totalLabel}>Total Today</Text>
+                                <Text style={styles.totalAmount}>${calculateTotal()}</Text>
                             </View>
                         </View>
-                        
-                        {/* App Store / Play Store Payment Button - Enhanced Black Design */}
-                        <TouchableOpacity 
-                            style={styles.storePayButton}
-                            onPress={handleStorePurchase}
-                            disabled={isProcessing || isComplete}
-                        >
-                            <View style={styles.storePayContent}>
-                                <Image 
-                                    source={Platform.OS === 'ios' 
-                                        ? require('../../assets/icons/home/apple-24-1666783710.png') 
-                                        : require('../../assets/icons/home/google-79-1666783710.png')} 
-                                    style={[styles.storeIcon, { tintColor: '#fff' }]} 
-                                />
-                                <Text style={styles.storePayText}>
-                                    {Platform.OS === 'ios' 
-                                        ? 'Pay with App Store' 
-                                        : 'Pay with Google Play'}
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
-                        
-                        <View style={styles.orDivider}>
-                            <View style={styles.dividerLine} />
-                            <Text style={styles.orText}>OR</Text>
-                            <View style={styles.dividerLine} />
+
+                        <View style={styles.trialNoteContainer}>
+                            <Image
+                                source={require('../../assets/icons/home/info circle-83-1658234612.png')}
+                                style={styles.infoIcon}
+                            />
+                            <Text style={styles.trialNote}>
+                                Your subscription will start with a 14-day free trial. You won't be charged until {new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}.
+                            </Text>
                         </View>
-                        
-                        {/* Payment Details */}
-                        <View style={styles.paymentDetails}>
-                            <Text style={styles.sectionTitle}>Pay with Card</Text>
-                            
-                            <View style={styles.cardTypes}>
-                                {/* <Image source={require('../../assets/icons/home/visa-0-1693375323.png')} style={styles.cardTypeIcon} />
+                    </View>
+
+                    {/* App Store / Play Store Payment Button - Enhanced Black Design */}
+                    <TouchableOpacity
+                        style={styles.storePayButton}
+                        onPress={handleStorePurchase}
+                        disabled={isProcessing || isComplete}
+                    >
+                        <View style={styles.storePayContent}>
+                            <Image
+                                source={Platform.OS === 'ios'
+                                    ? require('../../assets/icons/home/apple-24-1666783710.png')
+                                    : require('../../assets/icons/home/google-79-1666783710.png')}
+                                style={[styles.storeIcon, { tintColor: '#fff' }]}
+                            />
+                            <Text style={styles.storePayText}>
+                                {Platform.OS === 'ios'
+                                    ? 'Pay with App Store'
+                                    : 'Pay with Google Play'}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <View style={styles.orDivider}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.orText}>OR</Text>
+                        <View style={styles.dividerLine} />
+                    </View>
+
+                    {/* Payment Details */}
+                    <View style={styles.paymentDetails}>
+                        <Text style={styles.sectionTitle}>Pay with Card</Text>
+
+                        <View style={styles.cardTypes}>
+                            {/* <Image source={require('../../assets/icons/home/visa-0-1693375323.png')} style={styles.cardTypeIcon} />
                                 <Image source={require('../../assets/icons/home/mastercard-0-1693375323.png')} style={styles.cardTypeIcon} />
                                 <Image source={require('../../assets/icons/home/amex-0-1693375323.png')} style={styles.cardTypeIcon} />
                                 <Image source={require('../../assets/icons/home/discover-0-1693375323.png')} style={styles.cardTypeIcon} /> */}
-                            </View>
-                            
-                            <CreditCardInput 
-                                label="Card Number"
-                                placeholder="1234 5678 9012 3456"
-                                value={cardNumber}
-                                onChangeText={(text) => setCardNumber(formatCardNumber(text))}
-                                keyboardType="number-pad"
-                                maxLength={19}
-                                icon={require('../../assets/icons/home/credit card-0-1693375323.png')}
-                                error={errors.cardNumber}
-                            />
-                            
-                            <CreditCardInput 
-                                label="Name on Card"
-                                placeholder="John Doe"
-                                value={cardName}
-                                onChangeText={setCardName}
-                                error={errors.cardName}
-                            />
-                            
-                            <View style={styles.rowInputs}>
-                                <View style={styles.halfInput}>
-                                    <CreditCardInput 
-                                        label="Expiry Date"
-                                        placeholder="MM/YY"
-                                        value={expiryDate}
-                                        onChangeText={(text) => setExpiryDate(formatExpiryDate(text))}
-                                        keyboardType="number-pad"
-                                        maxLength={5}
-                                        error={errors.expiryDate}
-                                    />
-                                </View>
-                                
-                                <View style={styles.halfInput}>
-                                    <CreditCardInput 
-                                        label="CVV"
-                                        placeholder="123"
-                                        value={cvv}
-                                        onChangeText={setCvv}
-                                        keyboardType="number-pad"
-                                        maxLength={4}
-                                        secureTextEntry={true}
-                                        error={errors.cvv}
-                                    />
-                                </View>
-                            </View>
-                            
-                            <CreditCardInput 
-                                label="Billing ZIP Code"
-                                placeholder="12345"
-                                value={zipCode}
-                                onChangeText={setZipCode}
-                                keyboardType="number-pad"
-                                maxLength={10}
-                                error={errors.zipCode}
-                            />
-                            
-                            <View style={styles.secureNote}>
-                                <Image 
-                                    source={require('../../assets/icons/home/lock-0-1693375323.png')} 
-                                    style={styles.lockIcon} 
+                        </View>
+
+                        <CreditCardInput
+                            label="Card Number"
+                            placeholder="1234 5678 9012 3456"
+                            value={cardNumber}
+                            onChangeText={(text) => setCardNumber(formatCardNumber(text))}
+                            keyboardType="number-pad"
+                            maxLength={19}
+                            icon={require('../../assets/icons/home/credit card-0-1693375323.png')}
+                            error={errors.cardNumber}
+                        />
+
+                        <CreditCardInput
+                            label="Name on Card"
+                            placeholder="John Doe"
+                            value={cardName}
+                            onChangeText={setCardName}
+                            error={errors.cardName}
+                        />
+
+                        <View style={styles.rowInputs}>
+                            <View style={styles.halfInput}>
+                                <CreditCardInput
+                                    label="Expiry Date"
+                                    placeholder="MM/YY"
+                                    value={expiryDate}
+                                    onChangeText={(text) => setExpiryDate(formatExpiryDate(text))}
+                                    keyboardType="number-pad"
+                                    maxLength={5}
+                                    error={errors.expiryDate}
                                 />
-                                <Text style={styles.secureText}>
-                                    Your payment information is encrypted and secure. We never store your full card details.
-                                </Text>
+                            </View>
+
+                            <View style={styles.halfInput}>
+                                <CreditCardInput
+                                    label="CVV"
+                                    placeholder="123"
+                                    value={cvv}
+                                    onChangeText={setCvv}
+                                    keyboardType="number-pad"
+                                    maxLength={4}
+                                    secureTextEntry={true}
+                                    error={errors.cvv}
+                                />
                             </View>
                         </View>
-                        
-                        {/* Card Payment Button */}
-                        <TouchableOpacity 
-                            style={[
-                                styles.payButton,
-                                isProcessing && styles.processingButton
-                            ]}
-                            onPress={handleCardPayment}
-                            disabled={isProcessing || isComplete}
-                        >
-                            {isProcessing ? (
-                                <ActivityIndicator color="#fff" size="small" />
-                            ) : (
-                                <Text style={styles.payButtonText}>
-                                    {calculateTotal() === '0.00' 
-                                        ? 'Start Free Trial' 
-                                        : `Pay $${calculateTotal()}`}
-                                </Text>
-                            )}
-                        </TouchableOpacity>
-                        
-                        <Text style={styles.termsText}>
-                            By proceeding, you agree to our Terms of Service and Privacy Policy. You can cancel your subscription anytime from your account settings.
-                        </Text>
+
+                        <CreditCardInput
+                            label="Billing ZIP Code"
+                            placeholder="12345"
+                            value={zipCode}
+                            onChangeText={setZipCode}
+                            keyboardType="number-pad"
+                            maxLength={10}
+                            error={errors.zipCode}
+                        />
+
+                        <View style={styles.secureNote}>
+                            <Image
+                                source={require('../../assets/icons/home/lock-0-1693375323.png')}
+                                style={styles.lockIcon}
+                            />
+                            <Text style={styles.secureText}>
+                                Your payment information is encrypted and secure. We never store your full card details.
+                            </Text>
+                        </View>
                     </View>
-                </Animated.View>
-            </ScrollView>
-        </View>
+
+                    {/* Card Payment Button */}
+                    <TouchableOpacity
+                        style={[
+                            styles.payButton,
+                            isProcessing && styles.processingButton
+                        ]}
+                        onPress={handleCardPayment}
+                        disabled={isProcessing || isComplete}
+                    >
+                        {isProcessing ? (
+                            <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                            <Text style={styles.payButtonText}>
+                                {calculateTotal() === '0.00'
+                                    ? 'Start Free Trial'
+                                    : `Pay $${calculateTotal()}`}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <Text style={styles.termsText}>
+                        By proceeding, you agree to our Terms of Service and Privacy Policy. You can cancel your subscription anytime from your account settings.
+                    </Text>
+                </View>
+            </Animated.View>
+        </Wrapper>
     );
 });
 

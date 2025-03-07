@@ -1,14 +1,15 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput } from 'react-native';
-import React, { memo, useState, useContext } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator } from 'react-native';
+import React, { memo, useState, useContext, useEffect } from 'react';
 import TouchableButton from '../../components/global/ButtonTap';
 import colors from '../../utils/colors';
 import { OnboardingContext } from '../../contexts/OnboardingContext';
 import { useBottomSheet } from '../../contexts/BottomSheet';
+import Wrapper from './Wrapper';
 
 // Content configuration sheets for each section type
-const AboutMeSheet = ({ onSave }) => {
-    const [bio, setBio] = useState('');
-    
+const AboutMeSheet = ({ onSave, initialData = {} }) => {
+    const [bio, setBio] = useState(initialData.bio || '');
+
     return (
         <View style={styles.sheetContainer}>
             <Text style={styles.sheetTitle}>About Me</Text>
@@ -19,7 +20,7 @@ const AboutMeSheet = ({ onSave }) => {
                 value={bio}
                 onChangeText={setBio}
             />
-            <TouchableButton 
+            <TouchableButton
                 style={styles.saveButton}
                 onPress={() => onSave({ bio })}
             >
@@ -32,8 +33,8 @@ const AboutMeSheet = ({ onSave }) => {
 
 // Content section component
 const ContentSection = ({ title, description, icon, onPress, isActive, onConfigure }) => (
-    <TouchableOpacity 
-        style={[styles.sectionCard, isActive && styles.activeSection]} 
+    <TouchableOpacity
+        style={[styles.sectionCard, isActive && styles.activeSection]}
         onPress={onPress}
     >
         <View style={styles.sectionHeader}>
@@ -45,7 +46,7 @@ const ContentSection = ({ title, description, icon, onPress, isActive, onConfigu
         </View>
         <View style={styles.sectionStatus}>
             {isActive ? (
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.configureButton}
                     onPress={onConfigure}
                 >
@@ -60,55 +61,53 @@ const ContentSection = ({ title, description, icon, onPress, isActive, onConfigu
     </TouchableOpacity>
 );
 
-const ContentCustomization = memo(() => {
-    // Track which content sections are active
-    const [activeSections, setActiveSections] = useState({
-        about: false,
-        portfolio: false,
-        products: false,
-        videos: false,
-        blog: false,
-        services: false,
-        contact: false
-    });
+const ContentCustomization = memo(({ navigation }) => {
+    // Get state from context
+    const { 
+        contentSections, 
+        setContentSections, 
+        contentData, 
+        setContentData,
+        isLoading 
+    } = useContext(OnboardingContext);
+    
+    // Local state for UI management
+    const [localActiveSections, setLocalActiveSections] = useState(contentSections);
+    const [localSectionData, setLocalSectionData] = useState(contentData);
+    
+    // Update local state when context data changes (e.g., when loaded from storage)
+    useEffect(() => {
+        if (!isLoading) {
+            setLocalActiveSections(contentSections);
+            setLocalSectionData(contentData);
+        }
+    }, [contentSections, contentData, isLoading]);
 
-    // Track configuration data for each section
-    const [sectionData, setSectionData] = useState({
-        about: {},
-        portfolio: [],
-        products: [],
-        videos: [],
-        blog: [],
-        services: [],
-        contact: {}
-    });
-
-    const { setContentSections, setContentData } = useContext(OnboardingContext);
     const { openBottomSheet } = useBottomSheet();
 
     const toggleSection = (sectionKey) => {
         const updatedSections = {
-            ...activeSections,
-            [sectionKey]: !activeSections[sectionKey]
+            ...localActiveSections,
+            [sectionKey]: !localActiveSections[sectionKey]
         };
-        
-        setActiveSections(updatedSections);
+
+        setLocalActiveSections(updatedSections);
         setContentSections(updatedSections);
-        
+
         // If turning on a section, immediately open configuration
-        if (!activeSections[sectionKey]) {
+        if (!localActiveSections[sectionKey]) {
             configureSection(sectionKey);
         }
     };
 
     const configureSection = (sectionKey) => {
         // Open appropriate configuration sheet based on section type
-        switch(sectionKey) {
+        switch (sectionKey) {
             case 'about':
                 openBottomSheet(
-                    <AboutMeSheet 
-                        onSave={(data) => saveConfigData(sectionKey, data)} 
-                        initialData={sectionData.about}
+                    <AboutMeSheet
+                        onSave={(data) => saveConfigData(sectionKey, data)}
+                        initialData={localSectionData.about}
                     />
                 );
                 break;
@@ -116,7 +115,7 @@ const ContentCustomization = memo(() => {
                 // Navigate to a full screen portfolio editor
                 // navigation.navigate('PortfolioEditor', { 
                 //     onSave: (data) => saveConfigData(sectionKey, data),
-                //     initialData: sectionData.portfolio
+                //     initialData: localSectionData.portfolio
                 // });
                 break;
             // Handle other section types...
@@ -127,99 +126,107 @@ const ContentCustomization = memo(() => {
 
     const saveConfigData = (sectionKey, data) => {
         const updatedData = {
-            ...sectionData,
+            ...localSectionData,
             [sectionKey]: data
         };
-        
-        setSectionData(updatedData);
+
+        setLocalSectionData(updatedData);
         setContentData(updatedData);
     };
 
-    return (
-        <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.innerContainer}>
-                    <View style={styles.titleContainer}>
-                        <Text style={styles.title}>Customize Your Content</Text>
-                        <Text style={styles.subtitle}>
-                            Select and configure the sections you want to include in your profile
-                        </Text>
-                    </View>
-
-                    <View style={styles.content}>
-                        <ContentSection 
-                            title="About Me" 
-                            description="Share your story and background"
-                            icon={require('../../assets/icons/home/user information-309-1658436041.png')}
-                            onPress={() => toggleSection('about')}
-                            isActive={activeSections.about}
-                            onConfigure={() => configureSection('about')}
-                        />
-                        
-                        <ContentSection 
-                            title="Portfolio Showcase" 
-                            description="Display your work and projects"
-                            icon={require('../../assets/icons/home/roadmap-47-1681196106.png')}
-                            onPress={() => toggleSection('portfolio')}
-                            isActive={activeSections.portfolio}
-                            onConfigure={() => configureSection('portfolio')}
-                        />
-                        
-                        <ContentSection 
-                            title="Products" 
-                            description="Showcase items you're selling"
-                            icon={require('../../assets/icons/home/store-116-1658238103.png')}
-                            onPress={() => toggleSection('products')}
-                            isActive={activeSections.products}
-                            onConfigure={() => configureSection('products')}
-                        />
-                        
-                        <ContentSection 
-                            title="Videos" 
-                            description="Share video content with your audience"
-                            icon={require('../../assets/icons/home/youtube circle-0-1693375323.png')}
-                            onPress={() => toggleSection('videos')}
-                            isActive={activeSections.videos}
-                            onConfigure={() => configureSection('videos')}
-                        />
-                        
-                        <ContentSection 
-                            title="Blog Posts" 
-                            description="Share your thoughts and articles"
-                            icon={require('../../assets/icons/home/feedly-180-1693375492.png')}
-                            onPress={() => toggleSection('blog')}
-                            isActive={activeSections.blog}
-                            onConfigure={() => configureSection('blog')}
-                        />
-                        
-                        <ContentSection 
-                            title="Services" 
-                            description="Highlight or directly buy services you offer"
-                            icon={require('../../assets/icons/home/payoneer-0-1693375216.png')}
-                            onPress={() => toggleSection('services')}
-                            isActive={activeSections.services}
-                            onConfigure={() => configureSection('services')}
-                        />
-                        
-                        <ContentSection 
-                            title="Contact Form" 
-                            description="Let visitors get in touch with you"
-                            icon={require('../../assets/icons/home/email sendng-69-1659689482.png')}
-                            onPress={() => toggleSection('contact')}
-                            isActive={activeSections.contact}
-                            onConfigure={() => configureSection('contact')}
-                        />
-                    </View>
+    if (isLoading) {
+        return (
+            <Wrapper allowScroll={false} navigation={navigation}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#000" />
+                    <Text style={styles.loadingText}>Loading your content...</Text>
                 </View>
-            </ScrollView>
-        </View>
+            </Wrapper>
+        );
+    }
+
+    return (
+        <Wrapper allowScroll={true} navigation={navigation}>
+            <View style={styles.innerContainer}>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Customize Your Content</Text>
+                    <Text style={styles.subtitle}>
+                        Select and configure the sections you want to include in your profile
+                    </Text>
+                </View>
+
+                <View style={styles.content}>
+                    <ContentSection
+                        title="About Me"
+                        description="Share your story and background"
+                        icon={require('../../assets/icons/home/user information-309-1658436041.png')}
+                        onPress={() => toggleSection('about')}
+                        isActive={localActiveSections.about}
+                        onConfigure={() => configureSection('about')}
+                    />
+
+                    <ContentSection
+                        title="Portfolio Showcase"
+                        description="Display your work and projects"
+                        icon={require('../../assets/icons/home/roadmap-47-1681196106.png')}
+                        onPress={() => toggleSection('portfolio')}
+                        isActive={localActiveSections.portfolio}
+                        onConfigure={() => configureSection('portfolio')}
+                    />
+
+                    <ContentSection
+                        title="Products"
+                        description="Showcase items you're selling"
+                        icon={require('../../assets/icons/home/store-116-1658238103.png')}
+                        onPress={() => toggleSection('products')}
+                        isActive={localActiveSections.products}
+                        onConfigure={() => configureSection('products')}
+                    />
+
+                    <ContentSection
+                        title="Videos"
+                        description="Share video content with your audience"
+                        icon={require('../../assets/icons/home/youtube circle-0-1693375323.png')}
+                        onPress={() => toggleSection('videos')}
+                        isActive={localActiveSections.videos}
+                        onConfigure={() => configureSection('videos')}
+                    />
+
+                    <ContentSection
+                        title="Blog Posts"
+                        description="Share your thoughts and articles"
+                        icon={require('../../assets/icons/home/feedly-180-1693375492.png')}
+                        onPress={() => toggleSection('blog')}
+                        isActive={localActiveSections.blog}
+                        onConfigure={() => configureSection('blog')}
+                    />
+
+                    <ContentSection
+                        title="Services"
+                        description="Highlight or directly buy services you offer"
+                        icon={require('../../assets/icons/home/payoneer-0-1693375216.png')}
+                        onPress={() => toggleSection('services')}
+                        isActive={localActiveSections.services}
+                        onConfigure={() => configureSection('services')}
+                    />
+
+                    <ContentSection
+                        title="Contact Form"
+                        description="Let visitors get in touch with you"
+                        icon={require('../../assets/icons/home/email sendng-69-1659689482.png')}
+                        onPress={() => toggleSection('contact')}
+                        isActive={localActiveSections.contact}
+                        onConfigure={() => configureSection('contact')}
+                    />
+                </View>
+            </View>
+        </Wrapper>
     );
 });
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     innerContainer: {
         padding: 20,
@@ -354,6 +361,17 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: '500',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    loadingText: {
+        marginTop: 15,
+        fontSize: 16,
+        color: 'rgba(0,0,0,0.7)',
     },
 });
 

@@ -1,24 +1,25 @@
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
-import React, { memo, useState, useContext } from 'react';
+import React, { memo, useState, useContext, useEffect } from 'react';
 import TouchableButton from '../../components/global/ButtonTap';
 import colors from '../../utils/colors';
 import { OnboardingContext } from '../../contexts/OnboardingContext';
+import Wrapper from './Wrapper';
 
 // Template option component
 const TemplateOption = ({ template, selected, onSelect }) => (
-    <TouchableOpacity 
-        style={[styles.templateOption, selected && styles.selectedTemplate]} 
+    <TouchableOpacity
+        style={[styles.templateOption, selected && styles.selectedTemplate]}
         onPress={() => onSelect(template.id)}
     >
-        <Image source={template.preview} style={[styles.templatePreview,selected && {borderTopLeftRadius: 13, borderTopRightRadius: 13}]} />
+        <Image source={template.preview} style={[styles.templatePreview, selected && { borderTopLeftRadius: 13, borderTopRightRadius: 13 }]} />
         <View style={styles.templateInfo}>
             <Text style={styles.templateName}>{template.name}</Text>
             <Text style={styles.templateDescription}>{template.description}</Text>
         </View>
         {selected && (
             <View style={styles.selectedIndicator}>
-                <Image 
-                    source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
+                <Image
+                    source={require('../../assets/icons/home/check circle-3-1660219236.png')}
                     style={styles.checkIcon}
                 />
             </View>
@@ -32,7 +33,7 @@ const TemplateSection = ({ title, templates, selectedTemplate, onSelectTemplate 
         <Text style={styles.sectionTitle}>{title}</Text>
         <View style={styles.templatesGrid}>
             {templates.map(template => (
-                <TemplateOption 
+                <TemplateOption
                     key={template.id}
                     template={template}
                     selected={selectedTemplate === template.id}
@@ -43,24 +44,24 @@ const TemplateSection = ({ title, templates, selectedTemplate, onSelectTemplate 
     </View>
 );
 
-const TemplateSelection = (() => {
+const TemplateSelection = memo(({ navigation }) => {
     // Sample template data - replace with your actual templates
     const professionalTemplates = [
         { id: 'prof1', name: 'Minimal', description: 'Clean and professional', preview: require('../../assets/images/templates/minimal.jpg') },
         { id: 'prof2', name: 'Corporate', description: 'Business focused', preview: require('../../assets/images/templates/corporate.jpg') },
     ];
-    
+
     const creativeTemplates = [
         { id: 'creative1', name: 'Artist', description: 'Showcase your work', preview: require('../../assets/images/templates/artist.png') },
         { id: 'creative2', name: 'Designer', description: 'Visual portfolio', preview: require('../../assets/images/templates/designer.png') },
     ];
-    
+
     const personalTemplates = [
         { id: 'personal1', name: 'Social', description: 'Connect with others', preview: require('../../assets/images/templates/social.png') },
         { id: 'personal2', name: 'Blogger', description: 'Share your thoughts', preview: require('../../assets/images/templates/blogger.png') },
     ];
 
-    const [selectedTemplate, setSelectedTemplate] = useState('prof1');
+    const [selectedTemplate, setSelectedTemplate] = useState(null);
     const { setTemplateSelection } = useContext(OnboardingContext);
 
     const handleSelectTemplate = (templateId) => {
@@ -68,49 +69,53 @@ const TemplateSelection = (() => {
         setTemplateSelection(templateId);
     };
 
-    return (
-        <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.innerContainer}>
-                    <View style={styles.titleContainer}>
-                        <Text style={styles.title}>Choose Your Template</Text>
-                        <Text style={styles.subtitle}>
-                            Select the design that best represents your style and purpose, you can customize it later.
-                        </Text>
-                    </View>
+    useEffect(() => {
+        if (!selectedTemplate) {
+            handleSelectTemplate('prof1');
+        }
+    }, [selectedTemplate]);
 
-                    <View style={styles.content}>
-                        <TemplateSection 
-                            title="Professional" 
-                            templates={professionalTemplates}
-                            selectedTemplate={selectedTemplate}
-                            onSelectTemplate={handleSelectTemplate}
-                        />
-                        
-                        <TemplateSection 
-                            title="Creative" 
-                            templates={creativeTemplates}
-                            selectedTemplate={selectedTemplate}
-                            onSelectTemplate={handleSelectTemplate}
-                        />
-                        
-                        <TemplateSection 
-                            title="Personal" 
-                            templates={personalTemplates}
-                            selectedTemplate={selectedTemplate}
-                            onSelectTemplate={handleSelectTemplate}
-                        />
-                    </View>
+    return (
+        <Wrapper allowScroll={true} navigation={navigation}>
+            <View style={styles.innerContainer}>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Choose Your Template</Text>
+                    <Text style={styles.subtitle}>
+                        Select the design that best represents your style and purpose, you can customize it later.
+                    </Text>
                 </View>
-            </ScrollView>
-        </View>
+
+                <View style={styles.content}>
+                    <TemplateSection
+                        title="Professional"
+                        templates={professionalTemplates}
+                        selectedTemplate={selectedTemplate}
+                        onSelectTemplate={handleSelectTemplate}
+                    />
+
+                    <TemplateSection
+                        title="Creative"
+                        templates={creativeTemplates}
+                        selectedTemplate={selectedTemplate}
+                        onSelectTemplate={handleSelectTemplate}
+                    />
+
+                    <TemplateSection
+                        title="Personal"
+                        templates={personalTemplates}
+                        selectedTemplate={selectedTemplate}
+                        onSelectTemplate={handleSelectTemplate}
+                    />
+                </View>
+            </View>
+        </Wrapper>
     );
 });
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
     },
     innerContainer: {
         padding: 20,

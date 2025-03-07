@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { socialIcons } from '../../../components/profile/SocialIcons';
+import { socialIcons } from './SocialIcons';
 import TouchableButton from '../../../components/global/ButtonTap';
 import colors from '../../../utils/colors';
 import createStyles from '../../../utils/globalStyle';
@@ -26,7 +26,7 @@ const ProfileLinks = ({ callback, links }) => {
 
 const styles = StyleSheet.create({
     outsetContainer: {
-        marginHorizontal: 20,
+        // marginHorizontal: 20,
     },
     tickIcon: {
         width: 26,

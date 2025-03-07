@@ -3,11 +3,12 @@ import React, { memo, useState, useRef, useEffect } from 'react';
 import colors from '../../utils/colors';
 import { useContext } from 'react';
 import { OnboardingContext } from '../../contexts/OnboardingContext';
+import Wrapper from './Wrapper';
 
 // Plan card component with animated effects
 const PlanCard = ({ title, price, features, isPopular, isSelected, onSelect, trialDays }) => {
     const scaleAnim = useRef(new Animated.Value(1)).current;
-    
+
     useEffect(() => {
         if (isSelected) {
             Animated.sequence([
@@ -27,12 +28,12 @@ const PlanCard = ({ title, price, features, isPopular, isSelected, onSelect, tri
 
     return (
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[
-                    styles.planCard, 
+                    styles.planCard,
                     isSelected && styles.selectedPlanCard,
                     isPopular && styles.popularPlanCard
-                ]} 
+                ]}
                 onPress={onSelect}
                 activeOpacity={0.9}
             >
@@ -41,7 +42,7 @@ const PlanCard = ({ title, price, features, isPopular, isSelected, onSelect, tri
                         <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
                     </View>
                 )}
-                
+
                 <View style={styles.planHeader}>
                     <Text style={[styles.planTitle, isPopular && styles.popularPlanTitle]}>{title}</Text>
                     <View style={styles.priceContainer}>
@@ -55,28 +56,28 @@ const PlanCard = ({ title, price, features, isPopular, isSelected, onSelect, tri
                         </View>
                     )}
                 </View>
-                
+
                 <View style={styles.divider} />
-                
+
                 <View style={styles.featuresContainer}>
                     {features.map((feature, index) => (
                         <View key={index} style={styles.featureRow}>
-                            <Image 
-                                source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
+                            <Image
+                                source={require('../../assets/icons/home/check circle-3-1660219236.png')}
                                 style={[
                                     styles.featureIcon,
                                     isPopular && styles.popularFeatureIcon
-                                ]} 
+                                ]}
                             />
                             <Text style={styles.featureText}>{feature}</Text>
                         </View>
                     ))}
                 </View>
-                
+
                 {isSelected && (
                     <View style={styles.selectedIndicator}>
-                        <Image 
-                            source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
+                        <Image
+                            source={require('../../assets/icons/home/check circle-3-1660219236.png')}
                             style={styles.checkIcon}
                         />
                     </View>
@@ -86,128 +87,122 @@ const PlanCard = ({ title, price, features, isPopular, isSelected, onSelect, tri
     );
 };
 
-const PricingPlans = memo(() => {
+const PricingPlans = memo(({ navigation }) => {
     const [selectedPlan, setSelectedPlan] = useState('pro');
     const { setPricingPlan } = useContext(OnboardingContext);
-    
+
     const handleSelectPlan = (plan) => {
         setSelectedPlan(plan);
         setPricingPlan(plan);
     };
-    
+
     return (
-        <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.innerContainer}>
-                    <View style={styles.titleContainer}>
-                        <Text style={styles.title}>Choose Your Plan</Text>
-                        <Text style={styles.subtitle}>
-                            Start with a 14-day free trial. Cancel anytime.
-                        </Text>
-                    </View>
-                    
-                    <View style={styles.content}>
-                        <PlanCard 
-                            title="Starter"
-                            price={9}
-                            features={[
-                                "Custom domain",
-                                "Basic analytics",
-                                "Up to 5 content sections",
-                                "Mobile-optimized profile",
-                                "Email support"
-                            ]}
-                            isSelected={selectedPlan === 'starter'}
-                            onSelect={() => handleSelectPlan('starter')}
-                            isPopular={false}
-                            trialDays={14}
+        <Wrapper allowScroll={true} navigation={navigation}>
+            <View style={styles.innerContainer}>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Choose Your Plan</Text>
+                    <Text style={styles.subtitle}>
+                        Start with a 14-day free trial. Cancel anytime.
+                    </Text>
+                </View>
+
+                <View style={styles.content}>
+                    <PlanCard
+                        title="Starter"
+                        price={9}
+                        features={[
+                            "Custom domain",
+                            "Basic analytics",
+                            "Up to 5 content sections",
+                            "Mobile-optimized profile",
+                            "Email support"
+                        ]}
+                        isSelected={selectedPlan === 'starter'}
+                        onSelect={() => handleSelectPlan('starter')}
+                        isPopular={false}
+                        trialDays={14}
+                    />
+
+                    <PlanCard
+                        title="Pro"
+                        price={19}
+                        features={[
+                            "Everything in Starter",
+                            "Advanced analytics",
+                            "Unlimited content sections",
+                            "Priority support",
+                            "Remove branding",
+                            "Custom CSS",
+                            "SEO optimization tools"
+                        ]}
+                        isSelected={selectedPlan === 'pro'}
+                        onSelect={() => handleSelectPlan('pro')}
+                        isPopular={true}
+                        trialDays={14}
+                    />
+
+                    <PlanCard
+                        title="Business"
+                        price={49}
+                        features={[
+                            "Everything in Pro",
+                            "Multiple team members",
+                            "Advanced integrations",
+                            "Dedicated account manager",
+                            "Custom development",
+                            "White-label solution",
+                            "Priority feature requests"
+                        ]}
+                        isSelected={selectedPlan === 'business'}
+                        onSelect={() => handleSelectPlan('business')}
+                        isPopular={false}
+                        trialDays={14}
+                    />
+
+                    <View style={styles.guaranteeContainer}>
+                        <Image
+                            source={require('../../assets/icons/home/shield-124-1691989601.png')}
+                            style={styles.guaranteeIcon}
                         />
-                        
-                        <PlanCard 
-                            title="Pro"
-                            price={19}
-                            features={[
-                                "Everything in Starter",
-                                "Advanced analytics",
-                                "Unlimited content sections",
-                                "Priority support",
-                                "Remove branding",
-                                "Custom CSS",
-                                "SEO optimization tools"
-                            ]}
-                            isSelected={selectedPlan === 'pro'}
-                            onSelect={() => handleSelectPlan('pro')}
-                            isPopular={true}
-                            trialDays={14}
-                        />
-                        
-                        <PlanCard 
-                            title="Business"
-                            price={49}
-                            features={[
-                                "Everything in Pro",
-                                "Multiple team members",
-                                "Advanced integrations",
-                                "Dedicated account manager",
-                                "Custom development",
-                                "White-label solution",
-                                "Priority feature requests"
-                            ]}
-                            isSelected={selectedPlan === 'business'}
-                            onSelect={() => handleSelectPlan('business')}
-                            isPopular={false}
-                            trialDays={14}
-                        />
-                        
-                        <View style={styles.guaranteeContainer}>
-                            <Image 
-                                source={require('../../assets/icons/home/shield-124-1691989601.png')} 
-                                style={styles.guaranteeIcon} 
-                            />
-                            <View style={styles.guaranteeTextContainer}>
-                                <Text style={styles.guaranteeTitle}>100% Satisfaction Guarantee</Text>
-                                <Text style={styles.guaranteeText}>
-                                    Try risk-free for 14 days. If you're not completely satisfied, cancel before your trial ends and you won't be charged.
-                                </Text>
-                            </View>
+                        <View style={styles.guaranteeTextContainer}>
+                            <Text style={styles.guaranteeTitle}>100% Satisfaction Guarantee</Text>
+                            <Text style={styles.guaranteeText}>
+                                Try risk-free for 14 days. If you're not completely satisfied, cancel before your trial ends and you won't be charged.
+                            </Text>
                         </View>
-                        
-                        <View style={styles.faqContainer}>
-                            <Text style={styles.faqTitle}>Frequently Asked Questions</Text>
-                            
-                            <View style={styles.faqItem}>
-                                <Text style={styles.faqQuestion}>When will I be charged?</Text>
-                                <Text style={styles.faqAnswer}>
-                                    Your 14-day free trial starts today. You won't be charged until the trial period ends.
-                                </Text>
-                            </View>
-                            
-                            <View style={styles.faqItem}>
-                                <Text style={styles.faqQuestion}>Can I change plans later?</Text>
-                                <Text style={styles.faqAnswer}>
-                                    Yes, you can upgrade or downgrade your plan at any time from your account settings.
-                                </Text>
-                            </View>
-                            
-                            <View style={styles.faqItem}>
-                                <Text style={styles.faqQuestion}>How do I cancel my subscription?</Text>
-                                <Text style={styles.faqAnswer}>
-                                    You can cancel your subscription anytime from your account settings. If you cancel during your trial period, you won't be charged.
-                                </Text>
-                            </View>
+                    </View>
+
+                    <View style={styles.faqContainer}>
+                        <Text style={styles.faqTitle}>Frequently Asked Questions</Text>
+
+                        <View style={styles.faqItem}>
+                            <Text style={styles.faqQuestion}>When will I be charged?</Text>
+                            <Text style={styles.faqAnswer}>
+                                Your 14-day free trial starts today. You won't be charged until the trial period ends.
+                            </Text>
+                        </View>
+
+                        <View style={styles.faqItem}>
+                            <Text style={styles.faqQuestion}>Can I change plans later?</Text>
+                            <Text style={styles.faqAnswer}>
+                                Yes, you can upgrade or downgrade your plan at any time from your account settings.
+                            </Text>
+                        </View>
+
+                        <View style={styles.faqItem}>
+                            <Text style={styles.faqQuestion}>How do I cancel my subscription?</Text>
+                            <Text style={styles.faqAnswer}>
+                                You can cancel your subscription anytime from your account settings. If you cancel during your trial period, you won't be charged.
+                            </Text>
                         </View>
                     </View>
                 </View>
-            </ScrollView>
-        </View>
+            </View>
+        </Wrapper>
     );
 });
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
     innerContainer: {
         padding: 20,
         paddingBottom: 100, // Space for the main controller button

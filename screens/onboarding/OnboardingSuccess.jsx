@@ -5,9 +5,9 @@ import { useNavigation } from '@react-navigation/native';
 import colors from '../../utils/colors';
 import { OnboardingContext } from '../../contexts/OnboardingContext';
 import { useContext } from 'react';
+import Wrapper from './Wrapper';
 
-const OnboardingSuccess = memo(() => {
-    const navigation = useNavigation();
+const OnboardingSuccess = memo(({ navigation }) => {
     const { pricingPlan, domainType, domainInfo } = useContext(OnboardingContext);
     
     // Animation values
@@ -65,10 +65,10 @@ const OnboardingSuccess = memo(() => {
     };
     
     return (
-        <View style={styles.container}>
-            <Animated.View 
-                style={[
-                    styles.innerContainer,
+        <Wrapper allowScroll={true} navigation={navigation}>
+                <Animated.View 
+                    style={[
+                        styles.innerContainer,
                     { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
                 ]}
             >
@@ -136,7 +136,7 @@ const OnboardingSuccess = memo(() => {
                     Receipt #: {Math.random().toString(36).substring(2, 10).toUpperCase()}
                 </Text>
             </Animated.View>
-        </View>
+        </Wrapper>
     );
 });
 

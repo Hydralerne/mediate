@@ -3,7 +3,6 @@ import { View, StyleSheet, Text, Image, Platform, Pressable } from 'react-native
 import { UserContext } from '../../contexts/UserContext';
 import { BlurView } from 'expo-blur';
 const isAndroid = Platform.OS == 'android'
-import { sharedMenuHandler } from '../../hooks/useMenuHandler';
 import createStyles from '../../utils/globalStyle';
 import TouchableButton from './ButtonTap';
 import colors from '../../utils/colors';
@@ -21,7 +20,7 @@ const PagesHeader = ({ title, center, contextMenu, navigation, onProfile, isMain
             </BlurView>}
             <View style={[styles.innerMain, innerStyle]}>
                 {isMainStack || onProfile ?
-                    <TouchableButton onPress={onProfile ? onProfile : sharedMenuHandler.openMenu} style={styles.UserImageButton}>
+                    <TouchableButton onPress={() => {}} style={styles.UserImageButton}>
                         <Image source={{ uri: userData?.data?.image }} style={styles.userImage} />
                     </TouchableButton>
                     : <TouchableButton onPress={navigation?.goBack} style={styles.backButton}>

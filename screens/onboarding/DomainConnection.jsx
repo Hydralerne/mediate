@@ -4,15 +4,16 @@ import TouchableButton from '../../components/global/ButtonTap';
 import colors from '../../utils/colors';
 import { OnboardingContext } from '../../contexts/OnboardingContext';
 import { useNavigation } from '@react-navigation/native';
+import Wrapper from './Wrapper';
 
 // Domain option card component
 const DomainOption = ({ title, price, features, isSelected, onSelect, isPremium }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
         style={[
-            styles.domainCard, 
+            styles.domainCard,
             isSelected && styles.selectedDomainCard,
             isPremium && styles.premiumCard
-        ]} 
+        ]}
         onPress={onSelect}
     >
         {isPremium && (
@@ -20,28 +21,28 @@ const DomainOption = ({ title, price, features, isSelected, onSelect, isPremium 
                 <Text style={styles.premiumBadgeText}>RECOMMENDED</Text>
             </View>
         )}
-        
+
         <View style={styles.domainCardHeader}>
             <Text style={[styles.domainTitle, isPremium && styles.premiumTitle]}>{title}</Text>
             <Text style={styles.domainPrice}>{price}</Text>
         </View>
-        
+
         <View style={styles.featuresContainer}>
             {features.map((feature, index) => (
                 <View key={index} style={styles.featureRow}>
-                    <Image 
-                        source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                        style={styles.featureIcon} 
+                    <Image
+                        source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                        style={styles.featureIcon}
                     />
                     <Text style={styles.featureText}>{feature}</Text>
                 </View>
             ))}
         </View>
-        
+
         {isSelected && (
             <View style={styles.selectedIndicator}>
-                <Image 
-                    source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
+                <Image
+                    source={require('../../assets/icons/home/check circle-3-1660219236.png')}
                     style={styles.checkIcon}
                 />
             </View>
@@ -49,16 +50,15 @@ const DomainOption = ({ title, price, features, isSelected, onSelect, isPremium 
     </TouchableOpacity>
 );
 
-const DomainConnection = memo(() => {
+const DomainConnection = memo(({ navigation }) => {
     const [selectedOption, setSelectedOption] = useState('free');
     const { setDomainType } = useContext(OnboardingContext);
-    const navigation = useNavigation();
-    
+
     const handleSelectOption = (option) => {
         setSelectedOption(option);
         setDomainType(option);
     };
-    
+
     const handleContinue = () => {
         // Navigate to the appropriate domain selection screen based on the option
         if (selectedOption === 'free') {
@@ -67,71 +67,65 @@ const DomainConnection = memo(() => {
             navigation.navigate('OnboardingCustomDomain');
         }
     };
-    
+
     return (
-        <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.innerContainer}>
-                    <View style={styles.titleContainer}>
-                        <Text style={styles.title}>Establish Your Professional Identity</Text>
-                        <Text style={styles.subtitle}>
-                            Your domain is your digital business card. Choose how you want to be found online.
+        <Wrapper allowScroll={true} navigation={navigation}>
+            <View style={styles.innerContainer}>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Establish Your Professional Identity</Text>
+                    <Text style={styles.subtitle}>
+                        Your domain is your digital business card. Choose how you want to be found online.
+                    </Text>
+                </View>
+
+                <View style={styles.content}>
+                    <DomainOption
+                        title="Free Domain"
+                        price="$0/year"
+                        features={[
+                            "Professional web address",
+                            "Easy to share",
+                            "No setup required",
+                            "Instant availability"
+                        ]}
+                        isSelected={selectedOption === 'free'}
+                        onSelect={() => handleSelectOption('free')}
+                        isPremium={false}
+                    />
+
+                    <DomainOption
+                        title="Custom Domain"
+                        price="From $12/year"
+                        features={[
+                            "Your own unique web address",
+                            "Enhanced brand credibility",
+                            "Better memorability",
+                            "Full ownership"
+                        ]}
+                        isSelected={selectedOption === 'custom'}
+                        onSelect={() => handleSelectOption('custom')}
+                        isPremium={true}
+                    />
+
+                    <View style={styles.infoBox}>
+                        <Image
+                            source={require('../../assets/icons/home/info circle-83-1658234612.png')}
+                            style={styles.infoIcon}
+                        />
+                        <Text style={styles.infoText}>
+                            A professional domain makes your profile more credible and easier to remember.
+                            {selectedOption === 'custom'
+                                ? " Custom domains provide the highest level of professionalism and brand recognition."
+                                : " Free domains are perfect for getting started quickly."}
                         </Text>
                     </View>
-                    
-                    <View style={styles.content}>
-                        <DomainOption 
-                            title="Free Domain"
-                            price="$0/year"
-                            features={[
-                                "Professional web address",
-                                "Easy to share",
-                                "No setup required",
-                                "Instant availability"
-                            ]}
-                            isSelected={selectedOption === 'free'}
-                            onSelect={() => handleSelectOption('free')}
-                            isPremium={false}
-                        />
-                        
-                        <DomainOption 
-                            title="Custom Domain"
-                            price="From $12/year"
-                            features={[
-                                "Your own unique web address",
-                                "Enhanced brand credibility",
-                                "Better memorability",
-                                "Full ownership"
-                            ]}
-                            isSelected={selectedOption === 'custom'}
-                            onSelect={() => handleSelectOption('custom')}
-                            isPremium={true}
-                        />
-                        
-                        <View style={styles.infoBox}>
-                            <Image 
-                                source={require('../../assets/icons/home/info circle-83-1658234612.png')} 
-                                style={styles.infoIcon} 
-                            />
-                            <Text style={styles.infoText}>
-                                A professional domain makes your profile more credible and easier to remember. 
-                                {selectedOption === 'custom' 
-                                    ? " Custom domains provide the highest level of professionalism and brand recognition." 
-                                    : " Free domains are perfect for getting started quickly."}
-                            </Text>
-                        </View>
-                    </View>
                 </View>
-            </ScrollView>
-        </View>
+            </View>
+        </Wrapper>
     );
 });
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
     innerContainer: {
         padding: 20,
         paddingBottom: 100, // Space for the main controller button

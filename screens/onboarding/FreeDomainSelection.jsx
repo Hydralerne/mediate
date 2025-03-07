@@ -3,18 +3,19 @@ import React, { memo, useState, useContext, useEffect } from 'react';
 import TouchableButton from '../../components/global/ButtonTap';
 import colors from '../../utils/colors';
 import { OnboardingContext } from '../../contexts/OnboardingContext';
+import Wrapper from './Wrapper';
 
-const FreeDomainSelection = memo(() => {
+const FreeDomainSelection = memo(({ navigation }) => {
     const [subdomain, setSubdomain] = useState('');
     const [isAvailable, setIsAvailable] = useState(null);
     const [isChecking, setIsChecking] = useState(false);
     const { profileData, setDomainInfo } = useContext(OnboardingContext);
-    
+
     // Suggest a domain based on user's name or brand
-    const suggestedName = profileData?.name 
-        ? profileData.name.toLowerCase().replace(/\s+/g, '') 
+    const suggestedName = profileData?.name
+        ? profileData.name.toLowerCase().replace(/\s+/g, '')
         : '';
-    
+
     // Set suggested name when component mounts
     useEffect(() => {
         if (suggestedName && !subdomain) {
@@ -22,19 +23,19 @@ const FreeDomainSelection = memo(() => {
             checkAvailability(suggestedName);
         }
     }, [suggestedName]);
-    
+
     const checkAvailability = (value) => {
         if (!value) return;
-        
+
         setIsChecking(true);
-        
+
         // Simulate API call to check availability
         setTimeout(() => {
             // For demo purposes, let's say it's available if longer than 5 chars
             const available = value.length >= 3;
             setIsAvailable(available);
             setIsChecking(false);
-            
+
             if (available) {
                 setDomainInfo({
                     type: 'free',
@@ -43,103 +44,101 @@ const FreeDomainSelection = memo(() => {
             }
         }, 800);
     };
-    
+
     const handleSubdomainChange = (value) => {
         // Only allow alphanumeric and hyphen
         const sanitized = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
         setSubdomain(sanitized);
         setIsAvailable(null);
-        
+
         if (sanitized.length >= 3) {
             checkAvailability(sanitized);
         }
     };
-    
+
     return (
-        <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.innerContainer}>
-                    <View style={styles.titleContainer}>
-                        <Text style={styles.title}>Choose Your Free Domain</Text>
-                        <Text style={styles.subtitle}>
-                            Select a unique name for your free Oblien domain
-                        </Text>
+        <Wrapper allowScroll={true} navigation={navigation}>
+            <View style={styles.innerContainer}>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Choose Your Free Domain</Text>
+                    <Text style={styles.subtitle}>
+                        Select a unique name for your free Oblien domain
+                    </Text>
+                </View>
+
+                <View style={styles.content}>
+                    <View style={styles.domainInputContainer}>
+                        <TextInput
+                            style={styles.domainInput}
+                            placeholder="yourname"
+                            value={subdomain}
+                            onChangeText={handleSubdomainChange}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        <View style={styles.domainSuffix}>
+                            <Text style={styles.domainSuffixText}>.oblien.com</Text>
+                        </View>
                     </View>
-                    
-                    <View style={styles.content}>
-                        <View style={styles.domainInputContainer}>
-                            <TextInput
-                                style={styles.domainInput}
-                                placeholder="yourname"
-                                value={subdomain}
-                                onChangeText={handleSubdomainChange}
-                                autoCapitalize="none"
-                                autoCorrect={false}
+
+                    <View style={styles.availabilityContainer}>
+                        {isChecking ? (
+                            <Text style={styles.checkingText}>Checking availability...</Text>
+                        ) : isAvailable === true ? (
+                            <View style={styles.availabilityStatus}>
+                                <Image
+                                    source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                                    style={styles.statusIcon}
+                                />
+                                <Text style={styles.availableText}>Available!</Text>
+                            </View>
+                        ) : isAvailable === false ? (
+                            <View style={styles.availabilityStatus}>
+                                <Image
+                                    // source={require('../../assets/icons/home/x-circle.png')} 
+                                    style={[styles.statusIcon, styles.unavailableIcon]}
+                                />
+                                <Text style={styles.unavailableText}>Not available. Try another name.</Text>
+                            </View>
+                        ) : null}
+                    </View>
+
+                    <View style={styles.previewContainer}>
+                        <Text style={styles.previewLabel}>Your domain will look like:</Text>
+                        <View style={styles.domainPreview}>
+                            <Text style={styles.domainPreviewText}>
+                                {subdomain || 'yourname'}.oblien.com
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.tipsContainer}>
+                        <Text style={styles.tipsTitle}>Tips for a good domain:</Text>
+                        <View style={styles.tipItem}>
+                            <Image
+                                source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                                style={styles.tipIcon}
                             />
-                            <View style={styles.domainSuffix}>
-                                <Text style={styles.domainSuffixText}>.oblien.com</Text>
-                            </View>
+                            <Text style={styles.tipText}>Keep it short and memorable</Text>
                         </View>
-                        
-                        <View style={styles.availabilityContainer}>
-                            {isChecking ? (
-                                <Text style={styles.checkingText}>Checking availability...</Text>
-                            ) : isAvailable === true ? (
-                                <View style={styles.availabilityStatus}>
-                                    <Image 
-                                        source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                                        style={styles.statusIcon} 
-                                    />
-                                    <Text style={styles.availableText}>Available!</Text>
-                                </View>
-                            ) : isAvailable === false ? (
-                                <View style={styles.availabilityStatus}>
-                                    <Image 
-                                        // source={require('../../assets/icons/home/x-circle.png')} 
-                                        style={[styles.statusIcon, styles.unavailableIcon]} 
-                                    />
-                                    <Text style={styles.unavailableText}>Not available. Try another name.</Text>
-                                </View>
-                            ) : null}
+                        <View style={styles.tipItem}>
+                            <Image
+                                source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                                style={styles.tipIcon}
+                            />
+                            <Text style={styles.tipText}>Use your name or brand</Text>
                         </View>
-                        
-                        <View style={styles.previewContainer}>
-                            <Text style={styles.previewLabel}>Your domain will look like:</Text>
-                            <View style={styles.domainPreview}>
-                                <Text style={styles.domainPreviewText}>
-                                    {subdomain || 'yourname'}.oblien.com
-                                </Text>
-                            </View>
-                        </View>
-                        
-                        <View style={styles.tipsContainer}>
-                            <Text style={styles.tipsTitle}>Tips for a good domain:</Text>
-                            <View style={styles.tipItem}>
-                                <Image 
-                                    source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                                    style={styles.tipIcon} 
-                                />
-                                <Text style={styles.tipText}>Keep it short and memorable</Text>
-                            </View>
-                            <View style={styles.tipItem}>
-                                <Image 
-                                    source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                                    style={styles.tipIcon} 
-                                />
-                                <Text style={styles.tipText}>Use your name or brand</Text>
-                            </View>
-                            <View style={styles.tipItem}>
-                                <Image 
-                                    source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                                    style={styles.tipIcon} 
-                                />
-                                <Text style={styles.tipText}>Avoid numbers unless part of your brand</Text>
-                            </View>
+                        <View style={styles.tipItem}>
+                            <Image
+                                source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                                style={styles.tipIcon}
+                            />
+                            <Text style={styles.tipText}>Avoid numbers unless part of your brand</Text>
                         </View>
                     </View>
                 </View>
-            </ScrollView>
-        </View>
+            </View>
+        </Wrapper>
     );
 });
 

@@ -1,20 +1,10 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import PageLoader from '../loaders/PageLoager';
-import Main from '../screens/home/Main';
-import Dashboard from '../screens/dashboard/Dashboard';
-import ModernDashboard from '../screens/dashboard/ModernDashboard';
-import CreatorDashboard from '../screens/dashboard/CreatorDashboard';
+import DrawerNavigator from './DrawerNavigator';
+import Main from '../screens/onboarding/Main';
+import WebsiteDashboard from '../screens/dashboard/Main';
 
 const Stack = createNativeStackNavigator();
-
-const SettingsStack = lazy(() => import('./stacks/SettingsStack'));
-
-const SettingsScreen = React.memo(({ ...props }) => (
-    <Suspense fallback={<PageLoader />}>
-        <SettingsStack {...props} />
-    </Suspense>
-));
 
 const RootNavigator = () => {
     const defaultScreenOptions = {
@@ -23,21 +13,26 @@ const RootNavigator = () => {
         contentStyle: { backgroundColor: 'transparent' },
     };
 
-    const settingsScreenOptions = {
-        ...defaultScreenOptions,
-        fullScreenGestureEnabled: true,
-    };
-
     return (
         <Stack.Navigator screenOptions={defaultScreenOptions}>
             <Stack.Screen
-                name="Home"
-                component={Main}
+                name="Drawer"
+                component={DrawerNavigator}
             />
             <Stack.Screen
-                name="Settings"
-                component={SettingsScreen}
-                options={settingsScreenOptions}
+                name="SetupSite"
+                component={Main}
+                options={{
+                    contentStyle: { backgroundColor: '#000' }
+                }}
+            />
+            <Stack.Screen
+                name="WebsiteDashboard"
+                component={WebsiteDashboard}
+                options={{
+                    animation: 'slide_from_right',
+                    presentation: 'card',
+                }}
             />
         </Stack.Navigator>
     );

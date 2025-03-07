@@ -34,7 +34,7 @@ const SocialLinkSheet = ({ data, onSubmit, existingLink = null, onRemove = null 
     return (
         <>
             <Text style={styles.modalTitle}>
-                {isEditing ? `Edit ${data.title}` : `Add ${data.title}`} Link
+                {isEditing ? `${data.title}` : `${data.title}`} Link
             </Text>
             <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
@@ -97,9 +97,11 @@ const styles = StyleSheet.create({
         color: '#000',
         textAlign: 'center',
         marginBottom: 25,
+        marginTop: 15,
     },
     inputContainer: {
         marginBottom: 20,
+        marginHorizontal: 20,
     },
     inputWrapper: {
         flexDirection: 'row',
@@ -149,6 +151,7 @@ const styles = StyleSheet.create({
     modalButtons: {
         flexDirection: 'row',
         gap: 12,
+        marginHorizontal: 20,
     },
     cancelButton: {
         flex: 1,

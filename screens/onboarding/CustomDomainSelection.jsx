@@ -4,11 +4,12 @@ import TouchableButton from '../../components/global/ButtonTap';
 import colors from '../../utils/colors';
 import { OnboardingContext } from '../../contexts/OnboardingContext';
 import { useBottomSheet } from '../../contexts/BottomSheet';
-import TldSelectorSheet from './TldSelectorSheet';
+import TldSelectorSheet from './components/TldSelectorSheet';
+import Wrapper from './Wrapper';
 
 // TLD Option component with improved styling
 const TldOption = ({ tld, price, isSelected, onSelect }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
         style={[
             styles.tldOption,
             isSelected && styles.selectedTldOption
@@ -18,7 +19,7 @@ const TldOption = ({ tld, price, isSelected, onSelect }) => (
     >
         <Text style={[styles.tldText, isSelected && styles.selectedTldText]}>.{tld}</Text>
         <Text style={[styles.tldPrice, isSelected && styles.selectedTldPrice]}>${price}/year</Text>
-        
+
         {isSelected && (
             <View style={styles.checkmarkContainer}>
                 {/* <Image 
@@ -32,7 +33,7 @@ const TldOption = ({ tld, price, isSelected, onSelect }) => (
 
 // Domain Result component with improved styling
 const DomainResult = ({ domain, tld, isAvailable, price, onSelect, isSelected }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
         style={[
             styles.domainResultItem,
             isSelected && styles.selectedDomainResult,
@@ -50,16 +51,16 @@ const DomainResult = ({ domain, tld, isAvailable, price, onSelect, isSelected })
             ]}>
                 {domain}<Text style={styles.tldInResult}>.{tld}</Text>
             </Text>
-            
+
             <View style={styles.domainResultStatus}>
                 {isAvailable ? (
                     <>
                         <Text style={styles.domainResultPrice}>${price}/year</Text>
                         {isSelected && (
                             <View style={styles.resultCheckmarkContainer}>
-                                <Image 
-                                    source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                                    style={styles.resultCheckmarkIcon} 
+                                <Image
+                                    source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                                    style={styles.resultCheckmarkIcon}
                                 />
                             </View>
                         )}
@@ -74,18 +75,18 @@ const DomainResult = ({ domain, tld, isAvailable, price, onSelect, isSelected })
     </TouchableOpacity>
 );
 
-const CustomDomainSelection = memo(() => {
+const CustomDomainSelection = memo(({ navigation }) => {
     const [domainName, setDomainName] = useState('');
     const [selectedTld, setSelectedTld] = useState('com');
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState([]);
     const [selectedDomain, setSelectedDomain] = useState(null);
-    
+
     // Use the bottom sheet context
     const { openBottomSheet, closeBottomSheet } = useBottomSheet();
-    
+
     const { profileData, setDomainInfo } = useContext(OnboardingContext);
-    
+
     // Popular TLD options for quick selection
     const popularTlds = [
         { tld: 'com', price: 12 },
@@ -94,19 +95,19 @@ const CustomDomainSelection = memo(() => {
         { tld: 'io', price: 40 },
         { tld: 'co', price: 25 },
     ];
-    
+
     // Suggest a domain based on user's name or brand
-    const suggestedName = profileData?.name 
-        ? profileData.name.toLowerCase().replace(/\s+/g, '') 
+    const suggestedName = profileData?.name
+        ? profileData.name.toLowerCase().replace(/\s+/g, '')
         : '';
-    
+
     // Set suggested name when component mounts
     useEffect(() => {
         if (suggestedName && !domainName) {
             setDomainName(suggestedName);
         }
     }, [suggestedName]);
-    
+
     const handleDomainNameChange = (value) => {
         // Only allow alphanumeric and hyphen
         const sanitized = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -114,17 +115,17 @@ const CustomDomainSelection = memo(() => {
         setSearchResults([]);
         setSelectedDomain(null);
     };
-    
+
     const handleSelectTld = (tld) => {
         setSelectedTld(tld);
         setSearchResults([]);
         setSelectedDomain(null);
     };
-    
+
     const handleOpenTldSelector = () => {
         // Open the bottom sheet with the TldSelectorSheet component
         openBottomSheet(
-            <TldSelectorSheet 
+            <TldSelectorSheet
                 onSelect={handleSelectTld}
                 selectedTld={selectedTld}
                 onClose={closeBottomSheet}
@@ -132,18 +133,18 @@ const CustomDomainSelection = memo(() => {
             ['80%']
         );
     };
-    
+
     const handleSearch = () => {
         if (!domainName || domainName.length < 3) return;
-        
+
         setIsSearching(true);
         setSearchResults([]);
-        
+
         // Simulate API call to check domain availability
         setTimeout(() => {
             // In a real app, you would check availability for the selected TLD
             // and also suggest alternatives
-            
+
             // For demo purposes, let's create some results
             const mainResult = {
                 domain: domainName,
@@ -151,7 +152,7 @@ const CustomDomainSelection = memo(() => {
                 isAvailable: (domainName.length + selectedTld.length) % 2 === 0, // Random availability
                 price: getTldPrice(selectedTld)
             };
-            
+
             // Generate alternative suggestions
             const alternatives = popularTlds
                 .filter(option => option.tld !== selectedTld)
@@ -161,10 +162,10 @@ const CustomDomainSelection = memo(() => {
                     isAvailable: (domainName.length + option.tld.length) % 3 !== 0, // Different random availability
                     price: option.price
                 }));
-            
+
             setSearchResults([mainResult, ...alternatives]);
             setIsSearching(false);
-            
+
             // Auto-select the first available domain
             const firstAvailable = [mainResult, ...alternatives].find(result => result.isAvailable);
             if (firstAvailable) {
@@ -176,12 +177,12 @@ const CustomDomainSelection = memo(() => {
             }
         }, 1500);
     };
-    
+
     const getTldPrice = (tld) => {
         const found = popularTlds.find(item => item.tld === tld);
         return found ? found.price : 15; // Default price if not found
     };
-    
+
     const handleSelectDomain = (domain) => {
         setSelectedDomain(domain);
         setDomainInfo({
@@ -189,149 +190,147 @@ const CustomDomainSelection = memo(() => {
             value: domain
         });
     };
-    
+
     return (
-        <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.innerContainer}>
-                    <View style={styles.titleContainer}>
-                        <Text style={styles.title}>Find Your Perfect Domain</Text>
-                        <Text style={styles.subtitle}>
-                            A custom domain enhances your professional image and makes your profile easier to find
-                        </Text>
-                    </View>
-                    
-                    <View style={styles.content}>
-                        <View style={styles.domainBuilderContainer}>
-                            <Text style={styles.sectionTitle}>Build Your Domain</Text>
-                            
-                            <View style={styles.domainNameContainer}>
-                                <TextInput
-                                    style={styles.domainNameInput}
-                                    placeholder="Enter your domain name"
-                                    placeholderTextColor='rgba(0,0,0,0.25)'
-                                    value={domainName}
-                                    onChangeText={handleDomainNameChange}
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                />
-                                
-                                <TouchableOpacity 
-                                    style={styles.tldSelector}
-                                    onPress={handleOpenTldSelector}
-                                >
-                                    <Text style={styles.tldSelectorText}>.{selectedTld}</Text>
-                                    <Image 
-                                        source={require('../../assets/icons/home/chevron down-4-1696832126.png')} 
-                                        style={styles.tldSelectorIcon} 
-                                    />
-                                </TouchableOpacity>
-                            </View>
-                            
-                            <TouchableButton 
-                                style={[
-                                    styles.searchButton,
-                                    (!domainName || domainName.length < 3) && styles.disabledButton
-                                ]}
-                                onPress={handleSearch}
-                                disabled={!domainName || domainName.length < 3}
-                            >
-                                <Text style={styles.searchButtonText}>Check Availability</Text>
-                            </TouchableButton>
-                        </View>
-                        
-                        <Text style={styles.quickSelectTitle}>Quick Select TLD</Text>
-                        <ScrollView 
-                            horizontal 
-                            showsHorizontalScrollIndicator={false}
-                            style={styles.tldContainer}
-                            contentContainerStyle={styles.tldContainerContent}
-                        >
-                            {popularTlds.map(option => (
-                                <TldOption 
-                                    key={option.tld}
-                                    tld={option.tld}
-                                    price={option.price}
-                                    isSelected={selectedTld === option.tld}
-                                    onSelect={handleSelectTld}
-                                />
-                            ))}
-                            
-                            <TouchableOpacity 
-                                style={styles.moreTldsButton}
+        <Wrapper allowScroll={true} navigation={navigation}>
+            <View style={styles.innerContainer}>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Find Your Perfect Domain</Text>
+                    <Text style={styles.subtitle}>
+                        A custom domain enhances your professional image and makes your profile easier to find
+                    </Text>
+                </View>
+
+                <View style={styles.content}>
+                    <View style={styles.domainBuilderContainer}>
+                        <Text style={styles.sectionTitle}>Build Your Domain</Text>
+
+                        <View style={styles.domainNameContainer}>
+                            <TextInput
+                                style={styles.domainNameInput}
+                                placeholder="Enter your domain name"
+                                placeholderTextColor='rgba(0,0,0,0.25)'
+                                value={domainName}
+                                onChangeText={handleDomainNameChange}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+
+                            <TouchableOpacity
+                                style={styles.tldSelector}
                                 onPress={handleOpenTldSelector}
                             >
-                                <Text style={styles.moreTldsText}>More...</Text>
+                                <Text style={styles.tldSelectorText}>.{selectedTld}</Text>
+                                <Image
+                                    source={require('../../assets/icons/home/chevron down-4-1696832126.png')}
+                                    style={styles.tldSelectorIcon}
+                                />
                             </TouchableOpacity>
-                        </ScrollView>
-                        
-                        {isSearching ? (
-                            <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="large" color="#000" />
-                                <Text style={styles.loadingText}>Searching for available domains...</Text>
-                            </View>
-                        ) : searchResults.length > 0 ? (
-                            <View style={styles.resultsContainer}>
-                                <Text style={styles.resultsTitle}>Available Domains</Text>
-                                {searchResults.map((result, index) => (
-                                    <DomainResult 
-                                        key={index}
-                                        domain={result.domain}
-                                        tld={result.tld}
-                                        isAvailable={result.isAvailable}
-                                        price={result.price}
-                                        onSelect={handleSelectDomain}
-                                        isSelected={selectedDomain === `${result.domain}.${result.tld}`}
-                                    />
-                                ))}
-                            </View>
-                        ) : (
-                            <View style={styles.emptyStateContainer}>
-                                <Image 
-                                    source={require('../../assets/icons/menu-bottom/search-123-1658435124.png')} 
-                                    style={styles.emptyStateIcon} 
+                        </View>
+
+                        <TouchableButton
+                            style={[
+                                styles.searchButton,
+                                (!domainName || domainName.length < 3) && styles.disabledButton
+                            ]}
+                            onPress={handleSearch}
+                            disabled={!domainName || domainName.length < 3}
+                        >
+                            <Text style={styles.searchButtonText}>Check Availability</Text>
+                        </TouchableButton>
+                    </View>
+
+                    <Text style={styles.quickSelectTitle}>Quick Select TLD</Text>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.tldContainer}
+                        contentContainerStyle={styles.tldContainerContent}
+                    >
+                        {popularTlds.map(option => (
+                            <TldOption
+                                key={option.tld}
+                                tld={option.tld}
+                                price={option.price}
+                                isSelected={selectedTld === option.tld}
+                                onSelect={handleSelectTld}
+                            />
+                        ))}
+
+                        <TouchableOpacity
+                            style={styles.moreTldsButton}
+                            onPress={handleOpenTldSelector}
+                        >
+                            <Text style={styles.moreTldsText}>More...</Text>
+                        </TouchableOpacity>
+                    </ScrollView>
+
+                    {isSearching ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="large" color="#000" />
+                            <Text style={styles.loadingText}>Searching for available domains...</Text>
+                        </View>
+                    ) : searchResults.length > 0 ? (
+                        <View style={styles.resultsContainer}>
+                            <Text style={styles.resultsTitle}>Available Domains</Text>
+                            {searchResults.map((result, index) => (
+                                <DomainResult
+                                    key={index}
+                                    domain={result.domain}
+                                    tld={result.tld}
+                                    isAvailable={result.isAvailable}
+                                    price={result.price}
+                                    onSelect={handleSelectDomain}
+                                    isSelected={selectedDomain === `${result.domain}.${result.tld}`}
                                 />
-                                <Text style={styles.emptyStateText}>
-                                    Search for your ideal domain name to see what's available
-                                </Text>
-                            </View>
-                        )}
-                        
-                        <View style={styles.tipsContainer}>
-                            <Text style={styles.tipsTitle}>Pro Tips:</Text>
-                            <View style={styles.tipItem}>
-                                <Image 
-                                    source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                                    style={styles.tipIcon} 
-                                />
-                                <Text style={styles.tipText}>Keep it short and memorable</Text>
-                            </View>
-                            <View style={styles.tipItem}>
-                                <Image 
-                                    source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                                    style={styles.tipIcon} 
-                                />
-                                <Text style={styles.tipText}>.com domains are most recognized</Text>
-                            </View>
-                            <View style={styles.tipItem}>
-                                <Image 
-                                    source={require('../../assets/icons/home/check circle-3-1660219236.png')} 
-                                    style={styles.tipIcon} 
-                                />
-                                <Text style={styles.tipText}>Consider industry-specific TLDs (.dev for developers)</Text>
-                            </View>
+                            ))}
+                        </View>
+                    ) : (
+                        <View style={styles.emptyStateContainer}>
+                            <Image
+                                source={require('../../assets/icons/menu-bottom/search-123-1658435124.png')}
+                                style={styles.emptyStateIcon}
+                            />
+                            <Text style={styles.emptyStateText}>
+                                Search for your ideal domain name to see what's available
+                            </Text>
+                        </View>
+                    )}
+
+                    <View style={styles.tipsContainer}>
+                        <Text style={styles.tipsTitle}>Pro Tips:</Text>
+                        <View style={styles.tipItem}>
+                            <Image
+                                source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                                style={styles.tipIcon}
+                            />
+                            <Text style={styles.tipText}>Keep it short and memorable</Text>
+                        </View>
+                        <View style={styles.tipItem}>
+                            <Image
+                                source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                                style={styles.tipIcon}
+                            />
+                            <Text style={styles.tipText}>.com domains are most recognized</Text>
+                        </View>
+                        <View style={styles.tipItem}>
+                            <Image
+                                source={require('../../assets/icons/home/check circle-3-1660219236.png')}
+                                style={styles.tipIcon}
+                            />
+                            <Text style={styles.tipText}>Consider industry-specific TLDs (.dev for developers)</Text>
                         </View>
                     </View>
                 </View>
-            </ScrollView>
-        </View>
+            </View>
+        </Wrapper>
     );
 });
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
     },
     innerContainer: {
         paddingTop: 20,
@@ -495,7 +494,7 @@ const styles = StyleSheet.create({
         minWidth: 80,
         alignItems: 'center',
         justifyContent: 'center',
-        
+
     },
     moreTldsText: {
         fontSize: 14,

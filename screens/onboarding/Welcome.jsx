@@ -4,6 +4,8 @@ import TouchableButton from '../../components/global/ButtonTap';
 import { OptionButton } from './components/OptionButton';
 import useOnboarding from './hooks/useOnboarding';
 import colors from '../../utils/colors';
+import Wrapper from './Wrapper';
+import Logo from '../../components/global/Logo';
 
 const OPTIONS = [
     {
@@ -32,32 +34,48 @@ const OPTIONS = [
     }
 ];
 
-const Welcome = memo(() => {
+const Welcome = memo(({ navigation }) => {
     const { selectedOption, setSelectedOption } = useOnboarding();
 
     return (
-        <View style={styles.container}>
-            <View style={styles.titleContainer}>
-                <Text style={styles.title}>Welcome to Oblien</Text>
-                <Text style={styles.subtitle}>
-                    Let's begin your journey, Tell us what you want to create, and we'll help you build something amazing
-                </Text>
+        <Wrapper allowScroll={false} navigation={navigation}>
+            <View style={styles.logoContainer}>
+                <Logo width={50} height={50} color="#ffffff" />
             </View>
-            <View style={styles.optionsContainer}>
-                {OPTIONS.map((option) => (
-                    <OptionButton
-                        key={option.id}
-                        option={option}
-                        selected={selectedOption === option.id}
-                        onPress={() => setSelectedOption(option.id)}
-                    />
-                ))}
+            <View style={styles.container}>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Welcome to Oblien</Text>
+                    <Text style={styles.subtitle}>
+                        Let's begin your journey, Tell us what you want to create, and we'll help you build something amazing
+                    </Text>
+                </View>
+                <View style={styles.optionsContainer}>
+                    {OPTIONS.map((option) => (
+                        <OptionButton
+                            key={option.id}
+                            option={option}
+                            selected={selectedOption === option.id}
+                            onPress={() => setSelectedOption(option.id)}
+                        />
+                    ))}
+                </View>
             </View>
-        </View>
+        </Wrapper>
     );
 });
 
 const styles = StyleSheet.create({
+    logoContainer: {
+        alignItems: 'center',
+        marginTop: -90,
+        marginLeft: 20,
+        position: 'absolute',
+        top: 0,
+    },
+    logo: {
+        width: 100,
+        height: 50,
+    },
     container: {
         flex: 1,
         padding: 20,
@@ -80,7 +98,7 @@ const styles = StyleSheet.create({
         gap: 12,
         marginTop: 50,
     },
-    
+
 });
 
 export default Welcome; 
