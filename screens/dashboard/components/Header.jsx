@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         paddingHorizontal: 20,
         paddingVertical: 16,
-        backgroundColor: '#fff',
+        backgroundColor: '#000',
     },
     titleContainer: {
         flex: 1,
@@ -48,12 +48,13 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#000',
+        color: '#fff',
         marginBottom: 4,
     },
     domain: {
-        fontSize: 13,
-        color: 'rgba(0,0,0,0.5)',
+        fontSize: 14,
+        fontWeight: '300',
+        color: 'rgba(255,255,255,0.75)',
     },
     actionsContainer: {
         flexDirection: 'row',
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         marginLeft: 8,
-        backgroundColor: 'rgba(0,0,0,0.05)',
+        backgroundColor: 'rgba(255,255,255,1)',
         borderRadius: 20,
     },
     actionButtonText: {
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: 'rgba(0,0,0,0.05)',
+        backgroundColor: 'rgba(255,255,255,1)',
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 8,
@@ -84,6 +85,7 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         resizeMode: 'contain',
+        tintColor: '#000',
     },
 });
 

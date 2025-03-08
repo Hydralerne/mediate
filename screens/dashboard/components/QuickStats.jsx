@@ -23,6 +23,9 @@ const QuickStats = ({ visitors, interactions, messages }) => {
             horizontal 
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.container}
+            alwaysBounceVertical={false}
+            directionalLockEnabled={true}
+            overScrollMode="never"
         >
             <QuickStatCard 
                 title="Visitors" 

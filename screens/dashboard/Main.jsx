@@ -33,7 +33,7 @@ import {
     getDashboardEditor
 } from '../../middleware/content';
 
-const { width } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 // Memoize components outside the main component
 const MemoizedContentHeader = React.memo(ContentHeader);
@@ -335,18 +335,18 @@ const Main = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+            <StatusBar barStyle="light-content" backgroundColor="#fff" />
 
             <DraggableFlatList
                 ref={flatListRef}
                 data={contentData}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
                 onDragEnd={onDragEnd}
                 ListHeaderComponent={ListHeaderComponent}
                 contentContainerStyle={[
-                    styles.listContent,
-                    { paddingBottom: 150 }
+                    styles.listContent
                 ]}
                 activationDistance={5}
                 dragItemOverflow={true}
@@ -371,14 +371,25 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8f9fa',
     },
     headerWrapper: {
-        backgroundColor: '#fff',
+        backgroundColor: '#000',
+    },
+    headerTopView: {
+        height: height,
+        width: '100%',
+        marginTop: -height,
+        position: 'absolute',
+        backgroundColor: '#000',
     },
     statsContainer: {
-        paddingVertical: 12,
+        paddingTop: 18,
+        paddingBottom: 8,
+        borderTopRightRadius: 30,
+        borderTopLeftRadius: 30,
         backgroundColor: '#fff',
+        marginTop: 5,
     },
     listContent: {
-        paddingBottom: 100,
+        paddingBottom: 150,
     }
 });
 
