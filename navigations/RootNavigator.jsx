@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import DrawerNavigator from './DrawerNavigator';
 import Main from '../screens/onboarding/Main';
 import WebsiteDashboard from '../screens/dashboard/Main';
-
+import WebsitePreview from '../screens/dashboard/WebsitePreview';
 const Stack = createNativeStackNavigator();
 import { BottomSheetProvider } from '../contexts/BottomSheet';
 
@@ -34,6 +34,14 @@ const RootNavigator = () => {
                     options={{
                         animation: 'slide_from_right',
                         presentation: 'card',
+                    }}
+                />
+                <Stack.Screen
+                    name="WebsitePreview"
+                    component={WebsitePreview}
+                    options={{
+                        animation: 'slide_from_right',
+                        presentation: 'modal',
                     }}
                 />
             </Stack.Navigator>

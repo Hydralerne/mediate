@@ -147,7 +147,7 @@ const ContentSectionComponent = ({
                             onPress={handleToggleActive}
                         >
                             <Text style={[styles.toggleText, section.active ? styles.activeToggleText : styles.inactiveToggleText]}>
-                                {section.active ? 'Active' : 'Inactive'}
+                                {section.active ? 'Active' : 'Hidden'}
                             </Text>
                         </TouchableOpacity>
                         
