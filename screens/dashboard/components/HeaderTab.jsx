@@ -1,13 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import ContentHeader from './ContentHeader';
 
 const HeaderTab = () => {
     return (
         <View style={styles.tabContent}>
-            <Text style={styles.tabTitle}>Website Header</Text>
-            <Text style={styles.tabDescription}>
-                Customize your website header with logo, navigation, and tagline.
-            </Text>
+            <ContentHeader title="Website Header" subtitle="Customize your website header with logo, navigation, and tagline." />
             
             <View style={styles.headerSettings}>
                 <View style={styles.settingItem}>
@@ -45,7 +43,7 @@ const HeaderTab = () => {
 
 const styles = StyleSheet.create({
     tabContent: {
-        padding: 16,
+        // padding: 16,
         backgroundColor: '#f8f9fa',
     },
     tabTitle: {
@@ -69,6 +67,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 2,
         marginBottom: 16,
+        marginHorizontal: 20,
     },
     settingItem: {
         marginBottom: 20,

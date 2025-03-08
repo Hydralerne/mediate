@@ -6,6 +6,14 @@ import { OnboardingContext } from '../../contexts/OnboardingContext';
 import { useBottomSheet } from '../../contexts/BottomSheet';
 import Wrapper from './Wrapper';
 
+// Import from our middleware
+import { 
+  SECTION_TYPES, 
+  getSectionMetadata, 
+  getSectionIcon,
+  getConfigComponent
+} from '../../middleware/content';
+
 // Content configuration sheets for each section type
 const AboutMeSheet = ({ onSave, initialData = {} }) => {
     const [bio, setBio] = useState(initialData.bio || '');
@@ -72,14 +80,14 @@ const ContentCustomization = memo(({ navigation }) => {
     } = useContext(OnboardingContext);
     
     // Local state for UI management
-    const [localActiveSections, setLocalActiveSections] = useState(contentSections);
-    const [localSectionData, setLocalSectionData] = useState(contentData);
+    const [localActiveSections, setLocalActiveSections] = useState(contentSections || {});
+    const [localSectionData, setLocalSectionData] = useState(contentData || {});
     
-    // Update local state when context data changes (e.g., when loaded from storage)
+    // Update local state when context data changes
     useEffect(() => {
         if (!isLoading) {
-            setLocalActiveSections(contentSections);
-            setLocalSectionData(contentData);
+            setLocalActiveSections(contentSections || {});
+            setLocalSectionData(contentData || {});
         }
     }, [contentSections, contentData, isLoading]);
 
@@ -101,26 +109,18 @@ const ContentCustomization = memo(({ navigation }) => {
     };
 
     const configureSection = (sectionKey) => {
-        // Open appropriate configuration sheet based on section type
-        switch (sectionKey) {
-            case 'about':
-                openBottomSheet(
-                    <AboutMeSheet
-                        onSave={(data) => saveConfigData(sectionKey, data)}
-                        initialData={localSectionData.about}
-                    />
-                );
-                break;
-            case 'portfolio':
-                // Navigate to a full screen portfolio editor
-                // navigation.navigate('PortfolioEditor', { 
-                //     onSave: (data) => saveConfigData(sectionKey, data),
-                //     initialData: localSectionData.portfolio
-                // });
-                break;
-            // Handle other section types...
-            default:
-                console.log(`Configure ${sectionKey}`);
+        // Get the configuration component for this section type
+        const ConfigComponent = getConfigComponent(sectionKey);
+        
+        if (ConfigComponent) {
+            openBottomSheet(
+                <ConfigComponent
+                    onSave={(data) => saveConfigData(sectionKey, data)}
+                    initialData={localSectionData[sectionKey] || {}}
+                />
+            );
+        } else {
+            console.log(`No configuration component found for ${sectionKey}`);
         }
     };
 
@@ -145,6 +145,9 @@ const ContentCustomization = memo(({ navigation }) => {
         );
     }
 
+    // Get all section types
+    const allSectionTypes = Object.values(SECTION_TYPES);
+
     return (
         <Wrapper allowScroll={true} navigation={navigation}>
             <View style={styles.innerContainer}>
@@ -156,68 +159,20 @@ const ContentCustomization = memo(({ navigation }) => {
                 </View>
 
                 <View style={styles.content}>
-                    <ContentSection
-                        title="About Me"
-                        description="Share your story and background"
-                        icon={require('../../assets/icons/home/user information-309-1658436041.png')}
-                        onPress={() => toggleSection('about')}
-                        isActive={localActiveSections.about}
-                        onConfigure={() => configureSection('about')}
-                    />
-
-                    <ContentSection
-                        title="Portfolio Showcase"
-                        description="Display your work and projects"
-                        icon={require('../../assets/icons/home/roadmap-47-1681196106.png')}
-                        onPress={() => toggleSection('portfolio')}
-                        isActive={localActiveSections.portfolio}
-                        onConfigure={() => configureSection('portfolio')}
-                    />
-
-                    <ContentSection
-                        title="Products"
-                        description="Showcase items you're selling"
-                        icon={require('../../assets/icons/home/store-116-1658238103.png')}
-                        onPress={() => toggleSection('products')}
-                        isActive={localActiveSections.products}
-                        onConfigure={() => configureSection('products')}
-                    />
-
-                    <ContentSection
-                        title="Videos"
-                        description="Share video content with your audience"
-                        icon={require('../../assets/icons/home/youtube circle-0-1693375323.png')}
-                        onPress={() => toggleSection('videos')}
-                        isActive={localActiveSections.videos}
-                        onConfigure={() => configureSection('videos')}
-                    />
-
-                    <ContentSection
-                        title="Blog Posts"
-                        description="Share your thoughts and articles"
-                        icon={require('../../assets/icons/home/feedly-180-1693375492.png')}
-                        onPress={() => toggleSection('blog')}
-                        isActive={localActiveSections.blog}
-                        onConfigure={() => configureSection('blog')}
-                    />
-
-                    <ContentSection
-                        title="Services"
-                        description="Highlight or directly buy services you offer"
-                        icon={require('../../assets/icons/home/payoneer-0-1693375216.png')}
-                        onPress={() => toggleSection('services')}
-                        isActive={localActiveSections.services}
-                        onConfigure={() => configureSection('services')}
-                    />
-
-                    <ContentSection
-                        title="Contact Form"
-                        description="Let visitors get in touch with you"
-                        icon={require('../../assets/icons/home/email sendng-69-1659689482.png')}
-                        onPress={() => toggleSection('contact')}
-                        isActive={localActiveSections.contact}
-                        onConfigure={() => configureSection('contact')}
-                    />
+                    {allSectionTypes.map(type => {
+                        const metadata = getSectionMetadata(type);
+                        return (
+                            <ContentSection
+                                key={type}
+                                title={metadata.title}
+                                description={metadata.description}
+                                icon={getSectionIcon(type)}
+                                onPress={() => toggleSection(type)}
+                                isActive={localActiveSections[type] || false}
+                                onConfigure={() => configureSection(type)}
+                            />
+                        );
+                    })}
                 </View>
             </View>
         </Wrapper>

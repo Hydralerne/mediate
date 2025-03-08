@@ -49,7 +49,7 @@ const QuickStats = ({ visitors, interactions, messages }) => {
 const styles = StyleSheet.create({
     container: {
         paddingVertical: 8,
-        paddingRight: 16, // Ensure last card's shadow is visible
+        paddingHorizontal: 20,
     },
     statCard: {
         flexDirection: 'row',
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 16,
         padding: 16,
-        marginLeft: 16,
+        marginRight: 16,
         marginVertical: 4, // Add vertical margin for shadow visibility
         width: 150,
         shadowColor: '#000',

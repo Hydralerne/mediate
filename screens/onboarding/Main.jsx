@@ -6,7 +6,6 @@ import colors from '../../utils/colors';
 import OnboardingStack from '../../navigations/OnboardingStack';
 import TouchableButton from '../../components/global/ButtonTap';
 import useOnboarding from './hooks/useOnboarding';
-import { BottomSheetProvider } from '../../contexts/BottomSheet';
 import { useState, useEffect, useContext } from 'react';
 import { OnboardingContext } from '../../contexts/OnboardingContext';
 import { OnboardingProvider } from '../../contexts/OnboardingContext';
@@ -30,13 +29,13 @@ const HeaderVideo = memo(() => {
 
 const OnboardingController = () => {
     const navigation = useNavigation();
-    const { 
-        templateSelection, 
-        domainType, 
-        domainInfo, 
-        pricingPlan, 
+    const {
+        templateSelection,
+        domainType,
+        domainInfo,
+        pricingPlan,
         paymentComplete,
-        setPaymentComplete 
+        setPaymentComplete
     } = useContext(OnboardingContext);
 
     // Define onboarding steps
@@ -98,13 +97,13 @@ const OnboardingController = () => {
     // Calculate total amount for payment
     const calculateTotal = () => {
         let total = 0;
-        
+
         // During trial, subscription is free
         // Add domain cost if custom
         if (domainType === 'custom' && domainInfo.value) {
             total += parseFloat(domainInfo.price || 12);
         }
-        
+
         return total.toFixed(2);
     };
 
@@ -114,7 +113,7 @@ const OnboardingController = () => {
             // This will be handled by the payment screen's own button
             return;
         }
-        
+
         // Special case for domain connection screen
         if (currentStep === 'OnboardingDomainConnection') {
             if (domainType === 'free') {
@@ -128,7 +127,7 @@ const OnboardingController = () => {
             }
             return;
         }
-        
+
         // Special case for domain selection screens
         if (isDomainScreen) {
             // Navigate to pricing plans after domain selection
@@ -137,7 +136,7 @@ const OnboardingController = () => {
             });
             return;
         }
-        
+
         // Special case for pricing plans screen
         if (currentStep === 'OnboardingPricingPlans') {
             navigation.navigate('SetupSite', {
@@ -145,7 +144,7 @@ const OnboardingController = () => {
             });
             return;
         }
-        
+
         // Normal flow for other screens
         if (currentStepIndex < onboardingSteps.length - 1) {
             navigation.navigate('SetupSite', {
@@ -213,7 +212,7 @@ const OnboardingController = () => {
                     >
                         <Text style={styles.previewButtonText}>Preview</Text>
                     </TouchableButton>
-                    
+
                     <TouchableButton
                         style={[
                             styles.continueButton,
@@ -228,7 +227,7 @@ const OnboardingController = () => {
             </View>
         );
     }
-    
+
     // Show Skip option for domain connection screen
     if (currentStep === 'OnboardingDomainConnection') {
         return (
@@ -240,7 +239,7 @@ const OnboardingController = () => {
                     >
                         <Text style={styles.skipButtonText}>Skip</Text>
                     </TouchableButton>
-                    
+
                     <TouchableButton
                         style={[
                             styles.continueButton,
@@ -297,18 +296,16 @@ const OnboardingController = () => {
 const Main = () => {
     return (
         <OnboardingProvider>
-            <BottomSheetProvider>
-                <View style={styles.container}>
-                    <View style={styles.header}>
-                        <HeaderVideo />
-                    </View>
-                    <View style={styles.content}>
-                        <OnboardingStack />
-                        <OnboardingController />
-                    </View>
-                    <View style={styles.bottomContainer} />
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <HeaderVideo />
                 </View>
-            </BottomSheetProvider>
+                <View style={styles.content}>
+                    <OnboardingStack />
+                    <OnboardingController />
+                </View>
+                <View style={styles.bottomContainer} />
+            </View>
         </OnboardingProvider>
     );
 };
@@ -373,7 +370,7 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.075,
         shadowRadius: 2.5,
-        
+
     },
     continueButton: {
         flex: 1,

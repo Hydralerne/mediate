@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
+import React, { useCallback, memo, useRef, useEffect } from 'react';
 import { 
     View, 
     Text, 
     StyleSheet, 
     TouchableOpacity, 
     Animated,
-    Modal,
-    FlatList,
-    Share
+    Share,
+    Image,
+    Platform
 } from 'react-native';
+import { useBottomSheet } from '../../../contexts/BottomSheet';
 
-const ContentSection = ({ 
+// Import from our middleware
+import { 
+    getSectionIcon,
+    getSectionEditor
+} from '../../../middleware/content';
+
+// Import the SectionEditorSheet component
+import SectionEditorSheet from './SectionEditorSheet';
+
+const ContentSectionComponent = ({ 
     section, 
     onToggleActive, 
     onEdit, 
@@ -19,175 +29,156 @@ const ContentSection = ({
     drag,
     isActive 
 }) => {
-    const [expanded, setExpanded] = useState(true); // Start expanded by default
-    const [menuVisible, setMenuVisible] = useState(false);
+    const { openBottomSheet, closeBottomSheet } = useBottomSheet();
+    const dragStartedRef = useRef(false);
     
-    const renderItem = ({ item }) => (
-        <View style={styles.itemContainer}>
-            <View style={styles.itemContent}>
-                <Text style={styles.itemTitle}>{item.title}</Text>
-                <Text style={styles.itemType}>{item.type}</Text>
-            </View>
-            <TouchableOpacity style={styles.itemEditButton}>
-                <Text style={styles.itemEditText}>Edit</Text>
-            </TouchableOpacity>
-        </View>
-    );
+    // Create animated values for smooth transitions
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    
+    // Update animations when isActive changes - use consistent driver approach
+    useEffect(() => {
+        Animated.timing(scaleAnim, {
+            toValue: isActive ? 1.02 : 1,
+            duration: 150,
+            useNativeDriver: true, // Always use native driver for transform animations
+        }).start();
+    }, [isActive, scaleAnim]);
+    
+    // Get section icon from middleware
+    const sectionIcon = section.icon || getSectionIcon(section.type);
+    
+    const handleOpenEditor = useCallback(() => {
+        // Don't open editor if drag just ended
+        if (dragStartedRef.current) {
+            return;
+        }
+        
+        // Get the editor component from middleware
+        const EditorComponent = getSectionEditor(section.type);
+        
+        if (EditorComponent) {
+            openBottomSheet(
+                <SectionEditorSheet
+                    section={section}
+                    EditorComponent={EditorComponent}
+                    onSave={(data) => {
+                        onEdit({ content: data });
+                        closeBottomSheet();
+                    }}
+                    onDelete={() => {
+                        onDelete();
+                        closeBottomSheet();
+                    }}
+                    onShare={async () => {
+                        try {
+                            await Share.share({
+                                message: `Check out my ${section.title} section at: https://oblien.com/${section.id}`,
+                                title: section.title,
+                            });
+                        } catch (error) {
+                            console.error(error);
+                        }
+                    }}
+                    onClose={closeBottomSheet}
+                />,
+                ['80%']
+            );
+        }
+    }, [section, onEdit, onDelete, openBottomSheet, closeBottomSheet]);
+    
+    const handleToggleActive = useCallback((e) => {
+        e.stopPropagation();
+        onToggleActive();
+    }, [onToggleActive]);
+    
+    const handleDrag = useCallback((e) => {
+        e.stopPropagation();
+        dragStartedRef.current = true;
+        
+        // Call the drag function
+        drag();
+        
+        // Reset drag started flag after a short delay
+        setTimeout(() => {
+            dragStartedRef.current = false;
+        }, 500);
+    }, [drag]);
+    
+    // Create animated styles - only use transform with native driver
+    const animatedStyle = {
+        transform: [{ scale: scaleAnim }],
+    };
+    
+    // Use regular styles for non-transform properties
+    const containerStyle = [
+        styles.container, 
+        !section.active && styles.inactiveContainer,
+        isActive && styles.draggingContainer, // Use static styles for shadow changes
+    ];
     
     return (
-        <Animated.View 
-            style={[
-                styles.container, 
-                !section.active && styles.inactiveContainer,
-                isActive && styles.draggingContainer
-            ]}
-        >
-            <View style={styles.header}>
-                <View style={styles.titleContainer}>
-                    <View style={styles.iconPlaceholder} />
-                    <View style={styles.titleTextContainer}>
-                        <Text style={[styles.title, !section.active && styles.inactiveTitle]}>
-                            {section.title}
-                        </Text>
-                        {section.description && (
-                            <Text style={styles.description}>{section.description}</Text>
-                        )}
-                    </View>
-                </View>
-                
-                <View style={styles.actionsContainer}>
-                    <TouchableOpacity 
-                        style={[styles.toggleButton, section.active ? styles.activeToggle : styles.inactiveToggle]}
-                        onPress={onToggleActive}
-                    >
-                        <Text style={[styles.toggleText, section.active ? styles.activeToggleText : styles.inactiveToggleText]}>
-                            {section.active ? 'Active' : 'Inactive'}
-                        </Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                        style={styles.menuButton}
-                        onPress={() => setMenuVisible(true)}
-                    >
-                        <Text style={styles.menuButtonText}>•••</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                        style={styles.dragButton}
-                        onPressIn={drag}
-                    >
-                        <View style={styles.dragButtonInner}>
-                            <View style={styles.dragLine} />
-                            <View style={styles.dragLine} />
-                            <View style={styles.dragLine} />
-                        </View>
-                    </TouchableOpacity>
-                </View>
-            </View>
-            
-            <View style={styles.expandedContent}>
-                <View style={styles.expandHeaderContainer}>
-                    <View style={styles.divider} />
-                    <TouchableOpacity 
-                        style={styles.expandButton}
-                        onPress={() => setExpanded(!expanded)}
-                    >
-                        <Text style={styles.expandButtonText}>
-                            {expanded ? 'Hide Content' : 'Show Content'}
-                        </Text>
-                        <Text style={styles.expandIcon}>{expanded ? '▲' : '▼'}</Text>
-                    </TouchableOpacity>
-                </View>
-                
-                {expanded && (
-                    <View style={styles.contentContainer}>
-                        {section.items && section.items.length > 0 ? (
-                            <FlatList 
-                                data={section.items}
-                                renderItem={renderItem}
-                                keyExtractor={(item) => item.id}
-                                scrollEnabled={false}
-                                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                            />
-                        ) : (
-                            <Text style={styles.emptyText}>No items yet. Add your first item!</Text>
-                        )}
-                        
-                        <TouchableOpacity 
-                            style={styles.addItemButton}
-                            onPress={() => {
-                                // Generate a unique ID for the new item
-                                const newItemId = `${section.id}-${Date.now()}`;
-                                onAddItem({
-                                    id: newItemId,
-                                    title: 'New Item',
-                                    type: section.id === 'portfolio' ? 'project' : 
-                                          section.id === 'blog' ? 'post' : 'item'
-                                });
-                            }}
-                        >
-                            <Text style={styles.addItemText}>+ Add New Item</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </View>
-            
-            {/* Options Menu Modal */}
-            <Modal
-                visible={menuVisible}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setMenuVisible(false)}
+        <Animated.View style={[...containerStyle, animatedStyle]}>
+            <TouchableOpacity 
+                style={styles.sectionContent}
+                onPress={handleOpenEditor}
+                activeOpacity={0.7}
+                delayPressIn={100} // Add delay to prevent accidental presses during drag
             >
-                <TouchableOpacity 
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setMenuVisible(false)}
-                >
-                    <View style={styles.menuContainer}>
+                <View style={styles.header}>
+                    <View style={styles.titleContainer}>
+                        {sectionIcon ? (
+                            <Image source={sectionIcon} style={styles.sectionIcon} />
+                        ) : (
+                            <View style={styles.iconPlaceholder} />
+                        )}
+                        <View style={styles.titleTextContainer}>
+                            <Text style={[styles.title, !section.active && styles.inactiveTitle]}>
+                                {section.title}
+                            </Text>
+                            {section.description && (
+                                <Text style={styles.description}>{section.description}</Text>
+                            )}
+                        </View>
+                    </View>
+                    
+                    <View style={styles.actionsContainer}>
                         <TouchableOpacity 
-                            style={styles.menuItem}
-                            onPress={async () => {
-                                try {
-                                    await Share.share({
-                                        message: `Check out my ${section.title} section at: https://oblien.com/${section.id}`,
-                                        title: section.title,
-                                    });
-                                } catch (error) {
-                                    console.error(error);
-                                }
-                                setMenuVisible(false);
-                            }}
+                            style={[styles.toggleButton, section.active ? styles.activeToggle : styles.inactiveToggle]}
+                            onPress={handleToggleActive}
                         >
-                            <Text style={styles.menuItemText}>Copy Section Link</Text>
+                            <Text style={[styles.toggleText, section.active ? styles.activeToggleText : styles.inactiveToggleText]}>
+                                {section.active ? 'Active' : 'Inactive'}
+                            </Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
-                            style={styles.menuItem}
-                            onPress={() => {
-                                // Implement rename logic
-                                setMenuVisible(false);
-                            }}
+                            style={styles.iconButton}
+                            onPress={handleOpenEditor}
                         >
-                            <Text style={styles.menuItemText}>Edit Section Name</Text>
+                            <Image 
+                                source={require('../../../assets/icons/home/pen-83-1666783638.png')} 
+                                style={styles.actionIcon} 
+                            />
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
-                            style={[styles.menuItem, styles.deleteMenuItem]}
-                            onPress={() => {
-                                setMenuVisible(false);
-                                onDelete();
-                            }}
+                            style={styles.iconButton}
+                            onPressIn={handleDrag}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
-                            <Text style={[styles.menuItemText, styles.deleteText]}>Delete Section</Text>
+                            <Image 
+                                source={require('../../../assets/icons/home/drag-17-1658431404.png')} 
+                                style={styles.actionIcon} 
+                            />
                         </TouchableOpacity>
                     </View>
-                </TouchableOpacity>
-            </Modal>
+                </View>
+            </TouchableOpacity>
         </Animated.View>
     );
 };
 
+// Update styles to include dragging container style
 const styles = StyleSheet.create({
     container: {
         backgroundColor: '#fff',
@@ -200,32 +191,30 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 2,
         overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: '#fff',
+    },
+    sectionContent: {
+        padding: 14,
     },
     inactiveContainer: {
         opacity: 0.7,
         backgroundColor: '#f8f9fa',
     },
-    draggingContainer: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 15,
-        elevation: 10,
-        zIndex: 999,
-        borderWidth: 2,
-        borderColor: '#000',
-    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16,
-        paddingBottom: 12,
     },
     titleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
+    },
+    sectionIcon: {
+        width: 24,
+        height: 24,
+        marginRight: 12,
     },
     iconPlaceholder: {
         width: 24,
@@ -276,167 +265,58 @@ const styles = StyleSheet.create({
     inactiveToggleText: {
         color: 'rgba(0, 0, 0, 0.4)',
     },
-    menuButton: {
+    iconButton: {
         width: 30,
         height: 30,
         borderRadius: 15,
         backgroundColor: 'rgba(0,0,0,0.05)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 8,
+        marginLeft: 8,
     },
-    menuButtonText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#000',
+    actionIcon: {
+        width: 18,
+        height: 18,
+        resizeMode: 'contain',
     },
-    dragButton: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: 'rgba(0,0,0,0.05)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    dragButtonInner: {
-        height: 14,
+    itemCountContainer: {
+        flexDirection: 'row',
         justifyContent: 'space-between',
-    },
-    dragLine: {
-        width: 14,
-        height: 2,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        borderRadius: 1,
-        marginVertical: 1,
-    },
-    expandedContent: {
-        paddingHorizontal: 16,
-    },
-    expandHeaderContainer: {
-        position: 'relative',
         alignItems: 'center',
-        marginBottom: 16,
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.05)',
     },
-    divider: {
-        height: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.05)',
-        width: '100%',
-        position: 'absolute',
-        top: 10,
-    },
-    expandButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
-        zIndex: 1,
-    },
-    expandButtonText: {
+    itemCount: {
         fontSize: 12,
         fontWeight: '500',
         color: 'rgba(0,0,0,0.6)',
-        marginRight: 4,
     },
-    expandIcon: {
-        fontSize: 10,
-        color: 'rgba(0,0,0,0.6)',
-    },
-    contentContainer: {
-        paddingBottom: 16,
-    },
-    itemContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.02)',
-        borderRadius: 8,
-        padding: 12,
-    },
-    itemContent: {
-        flex: 1,
-    },
-    itemTitle: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#000',
-    },
-    itemType: {
+    tapToEdit: {
         fontSize: 12,
-        color: 'rgba(0,0,0,0.5)',
-        marginTop: 2,
-    },
-    itemEditButton: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        backgroundColor: 'rgba(0,0,0,0.05)',
-        borderRadius: 8,
-    },
-    itemEditText: {
-        fontSize: 12,
-        fontWeight: '500',
-        color: '#000',
-    },
-    itemSeparator: {
-        height: 8,
-    },
-    emptyText: {
-        fontSize: 14,
         color: 'rgba(0,0,0,0.4)',
         fontStyle: 'italic',
-        textAlign: 'center',
-        marginBottom: 16,
     },
-    addItemButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0,0,0,0.05)',
-        borderRadius: 8,
-        padding: 12,
-        marginTop: 12,
-    },
-    addItemText: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#000',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    menuContainer: {
-        width: '80%',
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
+    draggingContainer: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 15,
-        elevation: 10,
-    },
-    menuItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.05)',
-    },
-    menuItemText: {
-        fontSize: 16,
-        color: '#000',
-    },
-    deleteMenuItem: {
-        borderBottomWidth: 0,
-    },
-    deleteText: {
-        color: '#FF4D4F',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.35,
+        shadowRadius: 16,
+        elevation: 15,
+        zIndex: 10,
     },
 });
 
-export default ContentSection;
+// Use memo with a custom comparison function
+export default memo(ContentSectionComponent, (prevProps, nextProps) => {
+    // Only re-render if these specific props change
+    return (
+        prevProps.section.id === nextProps.section.id &&
+        prevProps.section.title === nextProps.section.title &&
+        prevProps.section.active === nextProps.section.active &&
+        prevProps.section.description === nextProps.section.description &&
+        prevProps.isActive === nextProps.isActive &&
+        (prevProps.section.items?.length || 0) === (nextProps.section.items?.length || 0)
+    );
+});

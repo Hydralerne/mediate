@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 
 const Header = ({ websiteName, websiteDomain, onShare, onSettings }) => {
     return (
@@ -23,7 +23,10 @@ const Header = ({ websiteName, websiteDomain, onShare, onSettings }) => {
                     style={styles.settingsButton}
                     onPress={onSettings}
                 >
-                    <Text style={styles.settingsButtonText}>⚙️</Text>
+                    <Image 
+                        source={require('../../../assets/icons/home/setting-40-1662364403.png')} 
+                        style={styles.settingsButtonImage} 
+                    />
                 </TouchableOpacity>
             </View>
         </View>
@@ -35,7 +38,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         paddingVertical: 16,
         backgroundColor: '#fff',
     },
@@ -77,8 +80,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginLeft: 8,
     },
-    settingsButtonText: {
-        fontSize: 16,
+    settingsButtonImage: {
+        width: 24,
+        height: 24,
+        resizeMode: 'contain',
     },
 });
 

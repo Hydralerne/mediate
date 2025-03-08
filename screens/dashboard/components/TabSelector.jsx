@@ -45,8 +45,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     tabsScroll: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: 12,
     },
     tabButton: {
         paddingHorizontal: 16,

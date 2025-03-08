@@ -11,8 +11,9 @@ import {
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
+import { getSectionIcon } from '../../../middleware/content';
 
-const AddSectionModal = ({ visible, onClose, onAdd, sectionTypes }) => {
+const AddSectionModal = ({ visible, onClose, onAdd, sectionTypes, sectionMetadata }) => {
     const [title, setTitle] = useState('');
     const [selectedType, setSelectedType] = useState(null);
     
@@ -22,8 +23,6 @@ const AddSectionModal = ({ visible, onClose, onAdd, sectionTypes }) => {
         const sectionData = {
             title: title.trim(),
             type: selectedType,
-            description: getDescriptionForType(selectedType),
-            icon: getIconForType(selectedType)
         };
         
         onAdd(sectionData);
@@ -33,69 +32,6 @@ const AddSectionModal = ({ visible, onClose, onAdd, sectionTypes }) => {
     const resetForm = () => {
         setTitle('');
         setSelectedType(null);
-    };
-    
-    const getDescriptionForType = (type) => {
-        switch (type) {
-            case sectionTypes.ABOUT:
-                return 'Share your story and background';
-            case sectionTypes.PORTFOLIO:
-                return 'Display your work and projects';
-            case sectionTypes.PRODUCTS:
-                return 'Showcase items you\'re selling';
-            case sectionTypes.VIDEOS:
-                return 'Share video content with your audience';
-            case sectionTypes.BLOG:
-                return 'Share your thoughts and articles';
-            case sectionTypes.SERVICES:
-                return 'Highlight or directly buy services you offer';
-            case sectionTypes.CONTACT:
-                return 'Let visitors get in touch with you';
-            default:
-                return '';
-        }
-    };
-    
-    const getIconForType = (type) => {
-        switch (type) {
-            case sectionTypes.ABOUT:
-                return require('../../../assets/icons/home/user information-309-1658436041.png');
-            case sectionTypes.PORTFOLIO:
-                return require('../../../assets/icons/home/roadmap-47-1681196106.png');
-            case sectionTypes.PRODUCTS:
-                return require('../../../assets/icons/home/store-116-1658238103.png');
-            case sectionTypes.VIDEOS:
-                return require('../../../assets/icons/home/youtube circle-0-1693375323.png');
-            case sectionTypes.BLOG:
-                return require('../../../assets/icons/home/feedly-180-1693375492.png');
-            case sectionTypes.SERVICES:
-                return require('../../../assets/icons/home/payoneer-0-1693375216.png');
-            case sectionTypes.CONTACT:
-                return require('../../../assets/icons/home/email sendng-69-1659689482.png');
-            default:
-                return null;
-        }
-    };
-    
-    const getTitleForType = (type) => {
-        switch (type) {
-            case sectionTypes.ABOUT:
-                return 'About Me';
-            case sectionTypes.PORTFOLIO:
-                return 'Portfolio Showcase';
-            case sectionTypes.PRODUCTS:
-                return 'Products';
-            case sectionTypes.VIDEOS:
-                return 'Videos';
-            case sectionTypes.BLOG:
-                return 'Blog Posts';
-            case sectionTypes.SERVICES:
-                return 'Services';
-            case sectionTypes.CONTACT:
-                return 'Contact Form';
-            default:
-                return '';
-        }
     };
     
     return (
@@ -143,34 +79,37 @@ const AddSectionModal = ({ visible, onClose, onAdd, sectionTypes }) => {
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={styles.typeContainer}
                         >
-                            {Object.values(sectionTypes).map(type => (
-                                <TouchableOpacity 
-                                    key={type}
-                                    style={[
-                                        styles.typeButton, 
-                                        selectedType === type && styles.typeButtonSelected
-                                    ]}
-                                    onPress={() => {
-                                        setSelectedType(type);
-                                        if (!title) {
-                                            setTitle(getTitleForType(type));
-                                        }
-                                    }}
-                                >
-                                    <Image 
-                                        source={getIconForType(type)}
+                            {Object.values(sectionTypes).map(type => {
+                                const metadata = sectionMetadata[type];
+                                return (
+                                    <TouchableOpacity 
+                                        key={type}
                                         style={[
-                                            styles.typeIcon,
-                                            selectedType === type && styles.typeIconSelected
+                                            styles.typeButton, 
+                                            selectedType === type && styles.typeButtonSelected
                                         ]}
-                                        resizeMode="contain"
-                                    />
-                                    <Text style={[
-                                        styles.typeText,
-                                        selectedType === type && styles.typeTextSelected
-                                    ]}>{getTitleForType(type)}</Text>
-                                </TouchableOpacity>
-                            ))}
+                                        onPress={() => {
+                                            setSelectedType(type);
+                                            if (!title) {
+                                                setTitle(metadata.title);
+                                            }
+                                        }}
+                                    >
+                                        <Image 
+                                            source={getSectionIcon(type)}
+                                            style={[
+                                                styles.typeIcon,
+                                                selectedType === type && styles.typeIconSelected
+                                            ]}
+                                            resizeMode="contain"
+                                        />
+                                        <Text style={[
+                                            styles.typeText,
+                                            selectedType === type && styles.typeTextSelected
+                                        ]}>{metadata.title}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </ScrollView>
                         
                         <TouchableOpacity 
@@ -179,6 +118,7 @@ const AddSectionModal = ({ visible, onClose, onAdd, sectionTypes }) => {
                                 (!title.trim() || !selectedType) && styles.addButtonDisabled
                             ]}
                             onPress={handleAdd}
+                            disabled={!title.trim() || !selectedType}
                         >
                             <Text style={styles.addButtonText}>Add Section</Text>
                         </TouchableOpacity>

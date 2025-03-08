@@ -5,6 +5,7 @@ import Main from '../screens/onboarding/Main';
 import WebsiteDashboard from '../screens/dashboard/Main';
 
 const Stack = createNativeStackNavigator();
+import { BottomSheetProvider } from '../contexts/BottomSheet';
 
 const RootNavigator = () => {
     const defaultScreenOptions = {
@@ -14,27 +15,29 @@ const RootNavigator = () => {
     };
 
     return (
-        <Stack.Navigator screenOptions={defaultScreenOptions}>
-            <Stack.Screen
-                name="Drawer"
-                component={DrawerNavigator}
-            />
-            <Stack.Screen
-                name="SetupSite"
-                component={Main}
-                options={{
-                    contentStyle: { backgroundColor: '#000' }
-                }}
-            />
-            <Stack.Screen
-                name="WebsiteDashboard"
-                component={WebsiteDashboard}
-                options={{
-                    animation: 'slide_from_right',
-                    presentation: 'card',
-                }}
-            />
-        </Stack.Navigator>
+        <BottomSheetProvider>
+            <Stack.Navigator screenOptions={defaultScreenOptions}>
+                <Stack.Screen
+                    name="Drawer"
+                    component={DrawerNavigator}
+                />
+                <Stack.Screen
+                    name="SetupSite"
+                    component={Main}
+                    options={{
+                        contentStyle: { backgroundColor: '#000' }
+                    }}
+                />
+                <Stack.Screen
+                    name="WebsiteDashboard"
+                    component={WebsiteDashboard}
+                    options={{
+                        animation: 'slide_from_right',
+                        presentation: 'card',
+                    }}
+                />
+            </Stack.Navigator>
+        </BottomSheetProvider>
     );
 };
 

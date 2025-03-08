@@ -30,11 +30,6 @@ const BottomActions = ({ onAddContent, onPreview }) => {
                         onPress={onAddContent}
                         activeOpacity={0.7}
                     >
-                        <Image 
-                            source={require('../../../assets/icons/home/plus 4-12-1662493809.png')}
-                            style={styles.addButtonIcon}
-                            resizeMode="contain"
-                        />
                         <Text style={styles.addButtonText}>Add Section</Text>
                     </TouchableOpacity>
                     
@@ -43,12 +38,7 @@ const BottomActions = ({ onAddContent, onPreview }) => {
                         onPress={onPreview}
                         activeOpacity={0.7}
                     >
-                        <Image 
-                            source={require('../../../assets/icons/home/eye 2-17-1691989638.png')}
-                            style={styles.previewButtonIcon}
-                            resizeMode="contain"
-                        />
-                        <Text style={styles.previewButtonText}>Preview Website</Text>
+                        <Text style={styles.previewButtonText}>Preview Site</Text>
                     </TouchableOpacity>
                 </View>
             </View>

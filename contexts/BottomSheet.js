@@ -6,6 +6,9 @@ const BottomSheetContext = createContext();
 
 export const useBottomSheet = () => useContext(BottomSheetContext);
 
+// Memoized content component to prevent re-renders
+const MemoizedContent = React.memo(({ children }) => children);
+
 export const BottomSheetProvider = ({ children }) => {
     const bottomSheetRef = useRef(null);
     const [isOpen, setIsOpen] = useState(false);
@@ -26,7 +29,7 @@ export const BottomSheetProvider = ({ children }) => {
     }, []);
 
     // Open with custom content and optional custom snap points
-    const openBottomSheet = (contentComponent, snapPoints = ['35%']) => {
+    const openBottomSheet = useMemo(() => (contentComponent, snapPoints = ['35%']) => {
         // Clear any pending unmount timeout
         if (unmountTimeoutRef.current) {
             clearTimeout(unmountTimeoutRef.current);
@@ -45,17 +48,17 @@ export const BottomSheetProvider = ({ children }) => {
             bottomSheetRef.current?.expand();
             setIsOpen(true);
         });
-    };
+    }, []);
 
-    const closeBottomSheet = () => {
+    const closeBottomSheet = useMemo(() => () => {
         // Just close the sheet, don't unmount yet
         bottomSheetRef.current?.close();
         setIsOpen(false);
         Keyboard.dismiss();
-    };
+    }, []);
 
     // Handle actual unmounting separately from closing
-    const handleSheetChanges = (index) => {
+    const handleSheetChanges = useMemo(() => (index) => {
         if (index === -1) {
             // Sheet is fully closed, wait a bit then allow unmounting
             // Clear any existing timeout first
@@ -75,7 +78,7 @@ export const BottomSheetProvider = ({ children }) => {
             }
             setShouldUnmount(false);
         }
-    };
+    }, []);
 
     // Effect to clear content when unmounting is allowed and sheet is closed
     useEffect(() => {
@@ -84,8 +87,21 @@ export const BottomSheetProvider = ({ children }) => {
         }
     }, [shouldUnmount, isOpen]);
 
+    // Memoize the context value to prevent unnecessary re-renders
+    const contextValue = useMemo(() => ({ 
+        openBottomSheet, 
+        closeBottomSheet 
+    }), [openBottomSheet, closeBottomSheet]);
+
+    // Memoize the backdrop component
+    const renderBackdrop = useMemo(() => (props) => (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+        </TouchableWithoutFeedback>
+    ), []);
+
     return (
-        <BottomSheetContext.Provider value={{ openBottomSheet, closeBottomSheet }}>
+        <BottomSheetContext.Provider value={contextValue}>
             {children}
             <BottomSheet
                 ref={bottomSheetRef}
@@ -95,11 +111,7 @@ export const BottomSheetProvider = ({ children }) => {
                 enableHandlePanningGesture
                 enableContentPanningGesture
                 onChange={handleSheetChanges}
-                backdropComponent={(props) => (
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
-                    </TouchableWithoutFeedback>
-                )}
+                backdropComponent={renderBackdrop}
                 onClose={() => {
                     setIsOpen(false);
                 }}
@@ -107,7 +119,9 @@ export const BottomSheetProvider = ({ children }) => {
                 backgroundStyle={styles.bottomSheetBackground}
             >
                 <BottomSheetView style={styles.bottomSheetView}>
-                    {content}
+                    <MemoizedContent>
+                        {content}
+                    </MemoizedContent>
                 </BottomSheetView>
             </BottomSheet>
         </BottomSheetContext.Provider>
@@ -121,10 +135,9 @@ const styles = StyleSheet.create({
     bottomSheetBackground: {
         backgroundColor: 'white',
     },
-    // bottomSheetIndicator: {
-    //     backgroundColor: 'rgba(0,0,0,0.3)',
-    //     // width: 40,
-    // },
+    bottomSheetIndicator: {
+        backgroundColor: 'rgba(0,0,0,0.3)',
+    },
 });
 
 export default BottomSheetProvider;

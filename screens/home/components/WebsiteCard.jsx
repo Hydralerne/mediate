@@ -28,14 +28,14 @@ const WebsiteCard = ({ item, onPress, index }) => {
       '#1DD1A1', // Green
       '#FFC312', // Yellow
     ];
-    return colors[index % colors.length]; // Use index for consistent colors
+    return colors[Math.floor(Math.random() * colors.length)];
   };
 
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => onPress(item)}
-      activeOpacity={0.9} // Slightly more responsive feedback
+      activeOpacity={0.95}
     >
       <View style={styles.cardContent}>
         <View
@@ -87,29 +87,13 @@ const WebsiteCard = ({ item, onPress, index }) => {
           </View>
         </View>
 
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={(e) => {
-            e.stopPropagation(); // Prevent triggering the card's onPress
-            // Show options menu for this website
-            // You could implement a context menu here
-          }}
-        >
+        <TouchableOpacity style={styles.actionButton}>
           <Image
-            source={require('../../../assets/icons/posts/info menu-42-1661490994.png')}
+            source={require('../../../assets/icons/home/info menu-42-1661490994.png')}
             style={styles.moreIcon}
             resizeMode="contain"
           />
         </TouchableOpacity>
-      </View>
-      
-      {/* Add a subtle "open" indicator */}
-      <View style={styles.openIndicator}>
-        <Image
-          source={require('../../../assets/icons/home/chevron left-8-1696832126.png')}
-          style={styles.openIcon}
-          resizeMode="contain"
-        />
       </View>
     </TouchableOpacity>
   );
@@ -218,22 +202,6 @@ const styles = StyleSheet.create({
     height: 18,
     tintColor: '#000',
     opacity: 0.7,
-  },
-  openIndicator: {
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    marginTop: -10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    opacity: 0.3, // Subtle appearance
-  },
-  openIcon: {
-    width: 12,
-    height: 12,
-    tintColor: '#000',
   },
 });
 
