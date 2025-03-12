@@ -10,17 +10,17 @@ import {
 
 // Import directly from middleware
 import { 
-    SECTION_TYPES, 
     getSectionMetadata, 
-    getSectionIcon
-} from '../../../middleware/content';
+    getSectionIcon,
+    getAllSectionTypes
+} from '../../../components/sections/index';
 
 const AddSectionSheet = ({ 
     onAdd, 
     onClose
 }) => {
     // Get all section types from middleware
-    const allSectionTypes = Object.values(SECTION_TYPES);
+    const allSectionTypes = Object.values(getAllSectionTypes());
     
     const handleAddSection = (sectionType) => {
         onAdd({ type: sectionType });

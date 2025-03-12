@@ -9,135 +9,259 @@ export const useBottomSheet = () => useContext(BottomSheetContext);
 // Memoized content component to prevent re-renders
 const MemoizedContent = React.memo(({ children }) => children);
 
-export const BottomSheetProvider = ({ children }) => {
-    const bottomSheetRef = useRef(null);
-    const [isOpen, setIsOpen] = useState(false);
-    const [content, setContent] = useState(null);
-    const [snapPointsConfig, setSnapPointsConfig] = useState(['35%']);
-    const unmountTimeoutRef = useRef(null);
+// Individual bottom sheet component
+const SheetInstance = React.memo(({ 
+  id, 
+  content, 
+  snapPoints, 
+  isVisible, 
+  zIndex, 
+  onClose, 
+  onAnimationEnd,
+  setRef
+}) => {
+  const bottomSheetRef = useRef(null);
+  const [shouldRenderContent, setShouldRenderContent] = useState(isVisible);
+  const [gestureEnabled, setGestureEnabled] = useState(true);
+  
+  // Expose methods to parent
+  useEffect(() => {
+    if (bottomSheetRef.current && setRef) {
+      setRef({
+        ...bottomSheetRef.current,
+        setGestureEnabled: (enabled) => {
+          setGestureEnabled(enabled);
+        }
+      });
+    }
     
-    // Simple flag to control unmounting
-    const [shouldUnmount, setShouldUnmount] = useState(true);
+    return () => {
+      if (setRef) {
+        setRef(null);
+      }
+    };
+  }, [setRef]);
+  
+  // Effect to control the sheet visibility
+  useEffect(() => {
+    if (isVisible) {
+      // When opening, render content immediately
+      setShouldRenderContent(true);
+      bottomSheetRef.current?.expand();
+    } else {
+      // When closing, just close the sheet
+      // Content will be unmounted after animation completes
+      bottomSheetRef.current?.close();
+    }
+  }, [isVisible]);
+  
+  // Memoize the backdrop component
+  const renderBackdrop = useMemo(() => (props) => (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <BottomSheetBackdrop 
+        {...props} 
+        appearsOnIndex={0} 
+        disappearsOnIndex={-1} 
+        opacity={0.5} // Slightly transparent to show stacking
+      />
+    </TouchableWithoutFeedback>
+  ), []);
+  
+  // Handle sheet index changes
+  const handleSheetChange = (index) => {
+    if (index === -1) {
+      // Sheet is fully closed
+      // Wait for animation to complete before unmounting content
+      setTimeout(() => {
+        setShouldRenderContent(false);
+      }, 300);
+      
+      // Notify parent that animation has ended
+      onAnimationEnd(id);
+    }
+  };
+  
+  return (
+    <View style={[styles.sheetContainer, { zIndex }]}>
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={isVisible ? 0 : -1}
+        snapPoints={snapPoints}
+        enablePanDownToClose={gestureEnabled}
+        enableHandlePanningGesture={gestureEnabled}
+        enableContentPanningGesture={gestureEnabled}
+        onChange={handleSheetChange}
+        backdropComponent={renderBackdrop}
+        onClose={() => onClose(id)}
+        handleIndicatorStyle={[
+          styles.bottomSheetIndicator,
+          !gestureEnabled && styles.disabledIndicator
+        ]}
+        backgroundStyle={styles.bottomSheetBackground}
+      >
+        <BottomSheetView style={styles.bottomSheetView}>
+          {shouldRenderContent && (
+            <MemoizedContent>
+              {React.cloneElement(content, { bottomSheetRef: bottomSheetRef })}
+            </MemoizedContent>
+          )}
+        </BottomSheetView>
+      </BottomSheet>
+    </View>
+  );
+});
 
-    // Clean up timeout on unmount
-    useEffect(() => {
-        return () => {
-            if (unmountTimeoutRef.current) {
-                clearTimeout(unmountTimeoutRef.current);
-            }
-        };
-    }, []);
+export const BottomSheetProvider = ({ children }) => {
+  // State to track all active sheets
+  const [sheets, setSheets] = useState([]);
+  // Counter for generating unique IDs
+  const nextIdRef = useRef(0);
+  // Track sheets pending removal
+  const [pendingRemovals, setPendingRemovals] = useState({});
+  
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(pendingRemovals).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
+    };
+  }, [pendingRemovals]);
 
-    // Open with custom content and optional custom snap points
-    const openBottomSheet = useMemo(() => (contentComponent, snapPoints = ['35%']) => {
-        // Clear any pending unmount timeout
-        if (unmountTimeoutRef.current) {
-            clearTimeout(unmountTimeoutRef.current);
-            unmountTimeoutRef.current = null;
-        }
-        
-        // First set the content
-        setContent(contentComponent);
-        setSnapPointsConfig(snapPoints);
-        
-        // Prevent unmounting while sheet is open
-        setShouldUnmount(false);
-        
-        // Then open the sheet
-        requestAnimationFrame(() => {
-            bottomSheetRef.current?.expand();
-            setIsOpen(true);
-        });
-    }, []);
+  // Open a new bottom sheet
+  const openBottomSheet = useMemo(() => (contentComponent, snapPoints = ['35%']) => {
+    const id = `sheet-${nextIdRef.current++}`;
+    
+    // Add the new sheet to the stack
+    setSheets(prevSheets => [
+      ...prevSheets,
+      {
+        id,
+        content: contentComponent,
+        snapPoints,
+        isVisible: true,
+        createdAt: Date.now()
+      }
+    ]);
+    
+    // Return the sheet ID so it can be referenced later
+    return id;
+  }, []);
 
-    const closeBottomSheet = useMemo(() => () => {
-        // Just close the sheet, don't unmount yet
-        bottomSheetRef.current?.close();
-        setIsOpen(false);
-        Keyboard.dismiss();
-    }, []);
-
-    // Handle actual unmounting separately from closing
-    const handleSheetChanges = useMemo(() => (index) => {
-        if (index === -1) {
-            // Sheet is fully closed, wait a bit then allow unmounting
-            // Clear any existing timeout first
-            if (unmountTimeoutRef.current) {
-                clearTimeout(unmountTimeoutRef.current);
-            }
-            
-            unmountTimeoutRef.current = setTimeout(() => {
-                setShouldUnmount(true);
-                unmountTimeoutRef.current = null;
-            }, 300);
-        } else {
-            // If sheet is opening, cancel any pending unmount
-            if (unmountTimeoutRef.current) {
-                clearTimeout(unmountTimeoutRef.current);
-                unmountTimeoutRef.current = null;
-            }
-            setShouldUnmount(false);
-        }
-    }, []);
-
-    // Effect to clear content when unmounting is allowed and sheet is closed
-    useEffect(() => {
-        if (shouldUnmount && !isOpen) {
-            setContent(null);
-        }
-    }, [shouldUnmount, isOpen]);
-
-    // Memoize the context value to prevent unnecessary re-renders
-    const contextValue = useMemo(() => ({ 
-        openBottomSheet, 
-        closeBottomSheet 
-    }), [openBottomSheet, closeBottomSheet]);
-
-    // Memoize the backdrop component
-    const renderBackdrop = useMemo(() => (props) => (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
-        </TouchableWithoutFeedback>
-    ), []);
-
-    return (
-        <BottomSheetContext.Provider value={contextValue}>
-            {children}
-            <BottomSheet
-                ref={bottomSheetRef}
-                index={-1}
-                snapPoints={snapPointsConfig}
-                enablePanDownToClose
-                enableHandlePanningGesture
-                enableContentPanningGesture
-                onChange={handleSheetChanges}
-                backdropComponent={renderBackdrop}
-                onClose={() => {
-                    setIsOpen(false);
-                }}
-                handleIndicatorStyle={styles.bottomSheetIndicator}
-                backgroundStyle={styles.bottomSheetBackground}
-            >
-                <BottomSheetView style={styles.bottomSheetView}>
-                    <MemoizedContent>
-                        {content}
-                    </MemoizedContent>
-                </BottomSheetView>
-            </BottomSheet>
-        </BottomSheetContext.Provider>
+  // Close a specific bottom sheet by ID
+  const closeBottomSheet = useMemo(() => (sheetId) => {
+    setSheets(prevSheets => 
+      prevSheets.map(sheet => 
+        sheet.id === sheetId 
+          ? { ...sheet, isVisible: false } 
+          : sheet
+      )
     );
+    
+    Keyboard.dismiss();
+  }, []);
+  
+  // Close the top-most sheet if no ID is provided
+  const closeTopSheet = useMemo(() => () => {
+    setSheets(prevSheets => {
+      if (prevSheets.length === 0) return prevSheets;
+      
+      // Find the top-most visible sheet
+      const visibleSheets = prevSheets.filter(s => s.isVisible);
+      if (visibleSheets.length === 0) return prevSheets;
+      
+      // Sort by creation time (newest first)
+      const sortedSheets = [...visibleSheets].sort((a, b) => b.createdAt - a.createdAt);
+      const topSheetId = sortedSheets[0].id;
+      
+      // Mark it as not visible
+      return prevSheets.map(sheet => 
+        sheet.id === topSheetId 
+          ? { ...sheet, isVisible: false } 
+          : sheet
+      );
+    });
+    
+    Keyboard.dismiss();
+  }, []);
+  
+  // Close all sheets
+  const closeAllSheets = useMemo(() => () => {
+    setSheets(prevSheets => 
+      prevSheets.map(sheet => ({ ...sheet, isVisible: false }))
+    );
+    
+    Keyboard.dismiss();
+  }, []);
+
+  // Handle when a sheet animation ends (fully closed)
+  const handleSheetAnimationEnd = useMemo(() => (sheetId) => {
+    // Set a timeout to remove the sheet from the DOM
+    const timeout = setTimeout(() => {
+      setSheets(prevSheets => prevSheets.filter(sheet => sheet.id !== sheetId));
+      setPendingRemovals(prev => {
+        const newPending = { ...prev };
+        delete newPending[sheetId];
+        return newPending;
+      });
+    }, 300);
+    
+    // Track the timeout so we can clear it if needed
+    setPendingRemovals(prev => ({
+      ...prev,
+      [sheetId]: timeout
+    }));
+  }, []);
+
+  // Memoize the context value
+  const contextValue = useMemo(() => ({ 
+    openBottomSheet, 
+    closeBottomSheet,
+    closeTopSheet,
+    closeAllSheets
+  }), [openBottomSheet, closeBottomSheet, closeTopSheet, closeAllSheets]);
+
+  return (
+    <BottomSheetContext.Provider value={contextValue}>
+      {children}
+      
+      {/* Render all sheets in the stack */}
+      {sheets.map((sheet, index) => (
+        <SheetInstance
+          key={sheet.id}
+          id={sheet.id}
+          content={sheet.content}
+          snapPoints={sheet.snapPoints}
+          isVisible={sheet.isVisible}
+          zIndex={1000 + index} // Ensure proper stacking
+          onClose={closeBottomSheet}
+          onAnimationEnd={handleSheetAnimationEnd}
+        />
+      ))}
+    </BottomSheetContext.Provider>
+  );
 };
 
 const styles = StyleSheet.create({
-    bottomSheetView: {
-        flex: 1,
-    },
-    bottomSheetBackground: {
-        backgroundColor: 'white',
-    },
-    bottomSheetIndicator: {
-        backgroundColor: 'rgba(0,0,0,0.3)',
-    },
+  sheetContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  bottomSheetView: {
+    flex: 1,
+  },
+  bottomSheetBackground: {
+    backgroundColor: 'white',
+  },
+  bottomSheetIndicator: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  disabledIndicator: {
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
 });
 
 export default BottomSheetProvider;

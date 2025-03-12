@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 
 const QuickStatCard = ({ title, value, color, icon }) => {
@@ -99,4 +99,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default QuickStats; 
+export default memo(QuickStats); 

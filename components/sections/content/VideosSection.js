@@ -11,26 +11,8 @@ export const defaultContent = {
   items: [],
 };
 
-// Configuration component for onboarding
-export const ConfigSheet = ({ onSave, initialData = {} }) => {
-  return (
-    <View style={styles.sheetContainer}>
-      <Text style={styles.sheetTitle}>Videos</Text>
-      <Text style={styles.sheetDescription}>
-        You can add your videos in the dashboard after completing the setup.
-      </Text>
-      <TouchableButton
-        style={styles.saveButton}
-        onPress={() => onSave({ items: initialData.items || [] })}
-      >
-        <Text style={styles.saveButtonText}>Continue</Text>
-      </TouchableButton>
-    </View>
-  );
-};
-
 // Dashboard editor component
-export const DashboardEditor = ({ data, onSave }) => {
+export const EditorSheet = ({ data, onSave }) => {
   const [items, setItems] = useState(data?.items || []);
   const [currentItem, setCurrentItem] = useState(null);
   const [title, setTitle] = useState('');
@@ -207,21 +189,6 @@ export const DashboardEditor = ({ data, onSave }) => {
   );
 };
 
-// Create a new item for this section
-export function createItem() {
-  return {
-    id: `video-${Date.now()}`,
-    title: 'New Video',
-    videoUrl: '',
-    description: '',
-    type: 'video'
-  };
-}
-
-// Validate section data
-export function validateData(data) {
-  return data && Array.isArray(data.items);
-}
 
 const styles = StyleSheet.create({
   // Similar styles to ProductsSection with appropriate adjustments

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 
 const TabSelector = ({ activeTab, onTabChange }) => {
@@ -23,7 +23,7 @@ const TabSelector = ({ activeTab, onTabChange }) => {
                     onPress={() => onTabChange('header')}
                 >
                     <Text style={[styles.tabButtonText, activeTab === 'header' && styles.activeTabButtonText]}>
-                        Header & Navigation
+                        Header & background
                     </Text>
                 </TouchableOpacity>
                 
@@ -32,7 +32,16 @@ const TabSelector = ({ activeTab, onTabChange }) => {
                     onPress={() => onTabChange('social')}
                 >
                     <Text style={[styles.tabButtonText, activeTab === 'social' && styles.activeTabButtonText]}>
-                        Social Links
+                        Social links & hero
+                    </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                    style={[styles.tabButton, activeTab === 'footer' && styles.activeTabButton]}
+                    onPress={() => onTabChange('footer')}
+                >
+                    <Text style={[styles.tabButtonText, activeTab === 'footer' && styles.activeTabButtonText]}>
+                        Footer
                     </Text>
                 </TouchableOpacity>
             </ScrollView>
@@ -69,4 +78,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default TabSelector; 
+export default memo(TabSelector); 

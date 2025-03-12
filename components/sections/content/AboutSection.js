@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   Image
 } from 'react-native';
-import TouchableButton from '../../../components/global/ButtonTap';
+import TouchableButton from '../../global/ButtonTap';
 import colors from '../../../utils/colors';
 
 // Default content structure
@@ -23,7 +23,7 @@ export const defaultContent = {
 };
 
 // Unified editor component for both onboarding and dashboard
-export const Editor = ({ data = {}, onSave, isOnboarding = false }) => {
+export const EditorSheet = ({ data = {}, onSave, isOnboarding = false }) => {
   const [content, setContent] = useState({
     ...defaultContent,
     ...data
@@ -262,21 +262,6 @@ export const Editor = ({ data = {}, onSave, isOnboarding = false }) => {
     </ScrollView>
   );
 };
-
-// Create a new item for this section
-export function createItem() {
-  return {
-    id: `about-${Date.now()}`,
-    title: 'Personal Bio',
-    type: 'text'
-  };
-}
-
-// Validate section data
-export function validateData(data) {
-  // Simple validation example
-  return data && typeof data.bio === 'string';
-}
 
 const styles = StyleSheet.create({
   container: {

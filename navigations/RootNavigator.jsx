@@ -4,19 +4,22 @@ import DrawerNavigator from './DrawerNavigator';
 import Main from '../screens/onboarding/Main';
 import WebsiteDashboard from '../screens/dashboard/Main';
 import WebsitePreview from '../screens/dashboard/WebsitePreview';
+import EditorSheet from '../components/sections/content/products/EditorSheet';
 const Stack = createNativeStackNavigator();
 import { BottomSheetProvider } from '../contexts/BottomSheet';
 
 const RootNavigator = () => {
-    const defaultScreenOptions = {
-        headerShown: false,
-        animation: 'slide_from_right',
-        contentStyle: { backgroundColor: 'transparent' },
-    };
 
     return (
         <BottomSheetProvider>
-            <Stack.Navigator screenOptions={defaultScreenOptions}>
+            <Stack.Navigator
+                screenOptions={{
+                    headerShown: false,
+                    animation: 'slide_from_right',
+                    contentStyle: { backgroundColor: 'transparent' },
+                    fullScreenGestureEnabled: true,
+                }}
+            >
                 <Stack.Screen
                     name="Drawer"
                     component={DrawerNavigator}
@@ -40,8 +43,16 @@ const RootNavigator = () => {
                     name="WebsitePreview"
                     component={WebsitePreview}
                     options={{
-                        animation: 'slide_from_right',
                         presentation: 'modal',
+                    }}
+                />
+                <Stack.Screen
+                    name="EditorSheet"
+                    component={EditorSheet}
+                    options={{
+                        animation: 'slide_from_right',
+                        presentation: 'card',
+                        fullScreenGestureEnabled: false,
                     }}
                 />
             </Stack.Navigator>

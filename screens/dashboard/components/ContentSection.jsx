@@ -1,62 +1,77 @@
-import React, { useCallback, memo, useRef, useEffect } from 'react';
-import { 
-    View, 
-    Text, 
-    StyleSheet, 
-    TouchableOpacity, 
+import React, { useCallback, memo, useRef, useEffect, useState } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
     Animated,
     Share,
     Image,
     Platform
 } from 'react-native';
 import { useBottomSheet } from '../../../contexts/BottomSheet';
+import * as Haptics from 'expo-haptics';
+import DraggableFlatList, {
+    ScaleDecorator,
+} from "react-native-draggable-flatlist";
 
 // Import from our middleware
-import { 
+import {
     getSectionIcon,
     getSectionEditor
-} from '../../../middleware/content';
+} from '../../../components/sections/index';
 
 // Import the SectionEditorSheet component
 import SectionEditorSheet from './SectionEditorSheet';
+import { LongPressGestureHandler } from 'react-native-gesture-handler';
 
-const ContentSectionComponent = ({ 
-    section, 
-    onToggleActive, 
-    onEdit, 
-    onDelete, 
+const ContentSectionComponent = ({
+    section,
+    onToggleActive,
+    onEdit,
+    onDelete,
     onAddItem,
     drag,
-    isActive 
+    isActive,
+    navigation
 }) => {
     const { openBottomSheet, closeBottomSheet } = useBottomSheet();
     const dragStartedRef = useRef(false);
-    
-    // Create animated values for smooth transitions
-    const scaleAnim = useRef(new Animated.Value(1)).current;
-    
-    // Update animations when isActive changes - use consistent driver approach
+    const dragTimeoutRef = useRef(null);
+    const resetTimeoutRef = useRef(null);
+
+    // Clear timeouts when component unmounts
     useEffect(() => {
-        Animated.timing(scaleAnim, {
-            toValue: isActive ? 1.02 : 1,
-            duration: 150,
-            useNativeDriver: true, // Always use native driver for transform animations
-        }).start();
-    }, [isActive, scaleAnim]);
-    
-    // Get section icon from middleware
+        return () => {
+            if (dragTimeoutRef.current) {
+                clearTimeout(dragTimeoutRef.current);
+            }
+            if (resetTimeoutRef.current) {
+                clearTimeout(resetTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const sectionIcon = section.icon || getSectionIcon(section.type);
-    
+
     const handleOpenEditor = useCallback(() => {
         // Don't open editor if drag just ended
         if (dragStartedRef.current) {
             return;
         }
-        
+
         // Get the editor component from middleware
         const EditorComponent = getSectionEditor(section.type);
-        
+
+        console.log('EditorComponent', section.type);
+
         if (EditorComponent) {
+            if (section.type === 'products') {
+                navigation.navigate('EditorSheet', {
+                    section: section
+                });
+                return
+            }
             openBottomSheet(
                 <SectionEditorSheet
                     section={section}
@@ -85,45 +100,28 @@ const ContentSectionComponent = ({
             );
         }
     }, [section, onEdit, onDelete, openBottomSheet, closeBottomSheet]);
-    
+
     const handleToggleActive = useCallback((e) => {
         e.stopPropagation();
         onToggleActive();
     }, [onToggleActive]);
-    
+
+    const [isDragging, setIsDragging] = useState(false);
+
     const handleDrag = useCallback((e) => {
         e.stopPropagation();
-        dragStartedRef.current = true;
-        
-        // Call the drag function
-        drag();
-        
-        // Reset drag started flag after a short delay
-        setTimeout(() => {
-            dragStartedRef.current = false;
-        }, 500);
+        drag()
+        console.log('dragging', isDragging);
+        setIsDragging(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     }, [drag]);
-    
-    // Create animated styles - only use transform with native driver
-    const animatedStyle = {
-        transform: [{ scale: scaleAnim }],
-    };
-    
-    // Use regular styles for non-transform properties
-    const containerStyle = [
-        styles.container, 
-        !section.active && styles.inactiveContainer,
-        isActive && styles.draggingContainer, // Use static styles for shadow changes
-    ];
-    
+
     return (
-        <Animated.View style={[...containerStyle, animatedStyle]}>
-            <TouchableOpacity 
-                style={styles.sectionContent}
-                onPress={handleOpenEditor}
-                activeOpacity={0.7}
-                delayPressIn={100} // Add delay to prevent accidental presses during drag
-            >
+        <ScaleDecorator
+            activeScale={1.05}
+        >
+            <View style={[styles.container, styles.sectionContent, isDragging && styles.draggingContainer]}>
+
                 <View style={styles.header}>
                     <View style={styles.titleContainer}>
                         {sectionIcon ? (
@@ -140,9 +138,9 @@ const ContentSectionComponent = ({
                             )}
                         </View>
                     </View>
-                    
+
                     <View style={styles.actionsContainer}>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={[styles.toggleButton, section.active ? styles.activeToggle : styles.inactiveToggle]}
                             onPress={handleToggleActive}
                         >
@@ -150,31 +148,36 @@ const ContentSectionComponent = ({
                                 {section.active ? 'Active' : 'Hidden'}
                             </Text>
                         </TouchableOpacity>
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             style={styles.iconButton}
                             onPress={handleOpenEditor}
                         >
-                            <Image 
-                                source={require('../../../assets/icons/home/pen-83-1666783638.png')} 
-                                style={styles.actionIcon} 
+                            <Image
+                                source={require('../../../assets/icons/home/pen-83-1666783638.png')}
+                                style={styles.actionIcon}
                             />
                         </TouchableOpacity>
-                        
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.iconButton}
-                            onPressIn={handleDrag}
+                            onLongPress={handleDrag}
+                            delayLongPress={100}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            onPressOut={() => {
+                                setTimeout(() => {
+                                    setIsDragging(false);
+                                }, 200);
+                            }}
                         >
-                            <Image 
-                                source={require('../../../assets/icons/home/drag-17-1658431404.png')} 
-                                style={styles.actionIcon} 
+                            <Image
+                                source={require('../../../assets/icons/home/drag-17-1658431404.png')}
+                                style={styles.actionIcon}
                             />
                         </TouchableOpacity>
                     </View>
                 </View>
-            </TouchableOpacity>
-        </Animated.View>
+            </View>
+        </ScaleDecorator>
     );
 };
 
@@ -185,12 +188,6 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         marginHorizontal: 16,
         marginVertical: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-        overflow: 'hidden',
         borderWidth: 2,
         borderColor: '#fff',
     },
@@ -300,23 +297,12 @@ const styles = StyleSheet.create({
     },
     draggingContainer: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.35,
-        shadowRadius: 16,
-        elevation: 15,
-        zIndex: 10,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 2,
     },
 });
 
 // Use memo with a custom comparison function
-export default memo(ContentSectionComponent, (prevProps, nextProps) => {
-    // Only re-render if these specific props change
-    return (
-        prevProps.section.id === nextProps.section.id &&
-        prevProps.section.title === nextProps.section.title &&
-        prevProps.section.active === nextProps.section.active &&
-        prevProps.section.description === nextProps.section.description &&
-        prevProps.isActive === nextProps.isActive &&
-        (prevProps.section.items?.length || 0) === (nextProps.section.items?.length || 0)
-    );
-});
+export default memo(ContentSectionComponent);

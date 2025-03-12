@@ -1,5 +1,5 @@
 /**
- * Services section implementation
+ * Blog section implementation
  */
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
@@ -11,43 +11,24 @@ export const defaultContent = {
   items: [],
 };
 
-// Configuration component for onboarding
-export const ConfigSheet = ({ onSave, initialData = {} }) => {
-  return (
-    <View style={styles.sheetContainer}>
-      <Text style={styles.sheetTitle}>Services</Text>
-      <Text style={styles.sheetDescription}>
-        You can add your services in the dashboard after completing the setup.
-      </Text>
-      <TouchableButton
-        style={styles.saveButton}
-        onPress={() => onSave({ items: initialData.items || [] })}
-      >
-        <Text style={styles.saveButtonText}>Continue</Text>
-      </TouchableButton>
-    </View>
-  );
-};
-
 // Dashboard editor component
-export const DashboardEditor = ({ data, onSave }) => {
+export const EditorSheet = ({ data, onSave }) => {
   const [items, setItems] = useState(data?.items || []);
   const [currentItem, setCurrentItem] = useState(null);
   const [title, setTitle] = useState('');
-  const [price, setPrice] = useState('');
-  const [description, setDescription] = useState('');
-  const [duration, setDuration] = useState('');
+  const [content, setContent] = useState('');
+  const [excerpt, setExcerpt] = useState('');
 
   const handleAddItem = () => {
     if (!title.trim()) return;
     
     const newItem = {
-      id: `service-${Date.now()}`,
+      id: `blog-${Date.now()}`,
       title: title.trim(),
-      price: price.trim(),
-      description: description.trim(),
-      duration: duration.trim(),
-      type: 'service'
+      content: content.trim(),
+      excerpt: excerpt.trim(),
+      date: new Date().toISOString(),
+      type: 'post'
     };
     
     const updatedItems = [...items, newItem];
@@ -63,9 +44,9 @@ export const DashboardEditor = ({ data, onSave }) => {
         ? { 
             ...item, 
             title: title.trim(),
-            price: price.trim(),
-            description: description.trim(),
-            duration: duration.trim()
+            content: content.trim(),
+            excerpt: excerpt.trim(),
+            lastUpdated: new Date().toISOString()
           } 
         : item
     );
@@ -86,38 +67,38 @@ export const DashboardEditor = ({ data, onSave }) => {
   const handleEditItem = (item) => {
     setCurrentItem(item);
     setTitle(item.title);
-    setPrice(item.price || '');
-    setDescription(item.description || '');
-    setDuration(item.duration || '');
+    setContent(item.content || '');
+    setExcerpt(item.excerpt || '');
   };
 
   const resetForm = () => {
     setCurrentItem(null);
     setTitle('');
-    setPrice('');
-    setDescription('');
-    setDuration('');
+    setContent('');
+    setExcerpt('');
   };
 
   const handleSave = () => {
     onSave({ items });
   };
 
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.itemContainer}>
       <View style={styles.itemContent}>
         <Text style={styles.itemTitle}>{item.title}</Text>
-        <View style={styles.itemDetails}>
-          {item.price ? (
-            <Text style={styles.itemPrice}>${item.price}</Text>
-          ) : null}
-          {item.duration ? (
-            <Text style={styles.itemDuration}>{item.duration}</Text>
-          ) : null}
-        </View>
-        {item.description ? (
-          <Text style={styles.itemDescription} numberOfLines={2}>
-            {item.description}
+        <Text style={styles.itemDate}>
+          {item.lastUpdated ? 
+            `Updated: ${formatDate(item.lastUpdated)}` : 
+            `Posted: ${formatDate(item.date)}`}
+        </Text>
+        {item.excerpt ? (
+          <Text style={styles.itemExcerpt} numberOfLines={2}>
+            {item.excerpt}
           </Text>
         ) : null}
       </View>
@@ -141,37 +122,30 @@ export const DashboardEditor = ({ data, onSave }) => {
   return (
     <View style={styles.editorContainer}>
       <Text style={styles.editorTitle}>
-        {currentItem ? 'Edit Service' : 'Add New Service'}
+        {currentItem ? 'Edit Blog Post' : 'Add New Blog Post'}
       </Text>
       
       <TextInput
         style={styles.input}
-        placeholder="Service Name"
+        placeholder="Post Title"
         value={title}
         onChangeText={setTitle}
       />
       
       <TextInput
-        style={styles.input}
-        placeholder="Price (e.g. 99.99)"
-        value={price}
-        onChangeText={setPrice}
-        keyboardType="decimal-pad"
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Duration (e.g. 1 hour, 30 minutes)"
-        value={duration}
-        onChangeText={setDuration}
+        style={[styles.input, styles.smallTextArea]}
+        placeholder="Post Excerpt (short summary)"
+        multiline
+        value={excerpt}
+        onChangeText={setExcerpt}
       />
       
       <TextInput
         style={[styles.input, styles.textArea]}
-        placeholder="Service Description"
+        placeholder="Post Content"
         multiline
-        value={description}
-        onChangeText={setDescription}
+        value={content}
+        onChangeText={setContent}
       />
       
       <View style={styles.formActions}>
@@ -195,14 +169,14 @@ export const DashboardEditor = ({ data, onSave }) => {
             style={styles.actionButton}
             onPress={handleAddItem}
           >
-            <Text style={styles.actionButtonText}>Add Service</Text>
+            <Text style={styles.actionButtonText}>Add Post</Text>
           </TouchableButton>
         )}
       </View>
       
       <View style={styles.divider} />
       
-      <Text style={styles.listTitle}>Your Services</Text>
+      <Text style={styles.listTitle}>Your Blog Posts</Text>
       
       {items.length > 0 ? (
         <FlatList
@@ -213,7 +187,7 @@ export const DashboardEditor = ({ data, onSave }) => {
         />
       ) : (
         <Text style={styles.emptyText}>
-          No services added yet. Add your first service above.
+          No blog posts added yet. Add your first post above.
         </Text>
       )}
       
@@ -227,24 +201,8 @@ export const DashboardEditor = ({ data, onSave }) => {
   );
 };
 
-// Create a new item for this section
-export function createItem() {
-  return {
-    id: `service-${Date.now()}`,
-    title: 'New Service',
-    price: '',
-    description: '',
-    duration: '',
-    type: 'service'
-  };
-}
-
-// Validate section data
-export function validateData(data) {
-  return data && Array.isArray(data.items);
-}
-
 const styles = StyleSheet.create({
+  // Similar styles to previous sections
   sheetContainer: {
     padding: 20,
   },
@@ -289,6 +247,10 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     fontSize: 16,
+  },
+  smallTextArea: {
+    minHeight: 50,
+    textAlignVertical: 'top',
   },
   textArea: {
     minHeight: 100,
@@ -350,21 +312,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 4,
   },
-  itemDetails: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  itemPrice: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'green',
-    marginRight: 8,
-  },
-  itemDuration: {
+  itemDate: {
     fontSize: 14,
     color: 'rgba(0,0,0,0.6)',
+    marginBottom: 4,
   },
-  itemDescription: {
+  itemExcerpt: {
     fontSize: 14,
     color: 'rgba(0,0,0,0.6)',
   },

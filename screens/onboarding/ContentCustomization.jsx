@@ -12,7 +12,7 @@ import {
   getSectionMetadata, 
   getSectionIcon,
   getConfigComponent
-} from '../../middleware/content';
+} from '../../components/sections/index';
 
 // Content configuration sheets for each section type
 const AboutMeSheet = ({ onSave, initialData = {} }) => {

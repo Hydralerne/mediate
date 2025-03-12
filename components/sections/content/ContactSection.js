@@ -18,53 +18,8 @@ export const defaultContent = {
   customMessage: 'Get in touch with me! Fill out the form below and I\'ll get back to you as soon as possible.'
 };
 
-// Configuration component for onboarding
-export const ConfigSheet = ({ onSave, initialData = {} }) => {
-  const [email, setEmail] = useState(initialData.email || '');
-  const [phone, setPhone] = useState(initialData.phone || '');
-
-  return (
-    <View style={styles.sheetContainer}>
-      <Text style={styles.sheetTitle}>Contact Form</Text>
-      <Text style={styles.sheetDescription}>
-        Set up your contact information so visitors can reach you.
-      </Text>
-      
-      <Text style={styles.inputLabel}>Your Email Address</Text>
-      <TextInput
-        style={styles.textInput}
-        placeholder="email@example.com"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      
-      <Text style={styles.inputLabel}>Your Phone Number (Optional)</Text>
-      <TextInput
-        style={styles.textInput}
-        placeholder="(123) 456-7890"
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-      />
-      
-      <TouchableButton
-        style={styles.saveButton}
-        onPress={() => onSave({ 
-          ...defaultContent, 
-          email, 
-          phone,
-        })}
-      >
-        <Text style={styles.saveButtonText}>Save</Text>
-      </TouchableButton>
-    </View>
-  );
-};
-
 // Dashboard editor component
-export const DashboardEditor = ({ data, onSave }) => {
+export const EditorSheet = ({ data, onSave }) => {
   const [formData, setFormData] = useState({
     ...defaultContent,
     ...data
@@ -173,17 +128,6 @@ export const DashboardEditor = ({ data, onSave }) => {
     </View>
   );
 };
-
-// Create a new item for this section (not applicable for contact)
-export function createItem() {
-  return null; // Contact section doesn't have items
-}
-
-// Validate section data
-export function validateData(data) {
-  // Basic validation - at least email should be present
-  return data && typeof data.email === 'string';
-}
 
 const styles = StyleSheet.create({
   sheetContainer: {

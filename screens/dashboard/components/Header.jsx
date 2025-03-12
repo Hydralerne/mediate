@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 
 const Header = ({ websiteName, websiteDomain, onShare, onSettings }) => {
@@ -89,4 +89,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Header; 
+export default memo(Header); 

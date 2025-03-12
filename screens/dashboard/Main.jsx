@@ -1,16 +1,18 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, memo } from 'react';
 import {
     View,
+    Text,
     StyleSheet,
     StatusBar,
     Dimensions,
-    Alert
+    Alert,
+    TouchableOpacity,
+    Image
 } from 'react-native';
-import * as WebBrowser from 'expo-web-browser'; // Import WebBrowser from expo
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { useRoute } from '@react-navigation/native';
-
+import * as Haptics from 'expo-haptics';
 // Import components
 import Header from './components/Header';
 import QuickStats from './components/QuickStats';
@@ -25,48 +27,41 @@ import AddSectionSheet from './components/AddSectionSheet';
 
 // Import from our middleware
 import {
-    SECTION_TYPES,
-    SECTION_METADATA,
-    getSectionIcon,
     createSection,
     createSectionItem,
-    getDashboardEditor
-} from '../../middleware/content';
+} from '../../components/sections/index';
 
-const { height } = Dimensions.get('window');
-
-// Memoize components outside the main component
-const MemoizedContentHeader = React.memo(ContentHeader);
-const MemoizedHeaderTab = React.memo(HeaderTab);
+const { height, width } = Dimensions.get('window');
 
 // Create a memoized section component to prevent re-renders
-const SectionItem = React.memo(({
-    section,
-    onToggleActive,
-    onEdit,
-    onDelete,
-    onAddItem,
-    drag,
-    isActive
-}) => (
-    <ContentSection
-        section={section}
-        onToggleActive={onToggleActive}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        onAddItem={onAddItem}
-        drag={drag}
-        isActive={isActive}
-    />
-), (prevProps, nextProps) => {
-    // Custom comparison to prevent unnecessary re-renders
-    return (
-        prevProps.section.id === nextProps.section.id &&
-        prevProps.section.active === nextProps.section.active &&
-        prevProps.isActive === nextProps.isActive &&
-        JSON.stringify(prevProps.section.items) === JSON.stringify(nextProps.section.items)
-    );
-});
+
+// Create an EmptyState component that matches the project's UI theme
+const EmptyState = memo(({ onAddSection }) => (
+    <View style={styles.emptyStateContainer}>
+        <View style={styles.emptyStateCard}>
+            <View style={styles.emptyStateIconContainer}>
+                <Image 
+                    source={require('../../assets/icons/home/categories-0-1662364403.png')} 
+                    style={styles.emptyStateIcon}
+                />
+            </View>
+            <Text style={styles.emptyStateTitle}>No Sections Added</Text>
+            <Text style={styles.emptyStateDescription}>
+                Your website needs content sections to display information to visitors.
+            </Text>
+            <TouchableOpacity 
+                style={styles.emptyStateButton}
+                onPress={onAddSection}
+            >
+                <Text style={styles.emptyStateButtonText}>Add Section</Text>
+                <Image 
+                    source={require('../../assets/icons/home/plus 4-12-1662493809.png')} 
+                    style={styles.emptyStateButtonIcon}
+                />
+            </TouchableOpacity>
+        </View>
+    </View>
+));
 
 const Main = ({ navigation }) => {
     const route = useRoute();
@@ -81,20 +76,7 @@ const Main = ({ navigation }) => {
     const flatListRef = useRef(null);
 
     // Initialize sections from route params or create default sections
-    const [sections, setSections] = useState(() => {
-        if (initialSections && Array.isArray(initialSections)) {
-            return initialSections.map(section => ({
-                ...section,
-                icon: getSectionIcon(section.type)
-            }));
-        }
-
-        // Create default sections
-        return Object.values(SECTION_TYPES)
-            .filter(type => SECTION_METADATA[type].defaultActive)
-            .map(type => createSection(type))
-            .filter(Boolean);
-    });
+    const [sections, setSections] = useState([]);
 
     const [stats] = useState({
         visitors: 245,
@@ -102,8 +84,8 @@ const Main = ({ navigation }) => {
         messages: 12
     });
 
-    const [activeTab, setActiveTab] = useState('content'); // 'content', 'header', 'social'
-    const { openBottomSheet, closeBottomSheet } = useBottomSheet();
+    const [activeTab, setActiveTab] = useState('content');
+    const { openBottomSheet, closeAllSheets } = useBottomSheet();
 
     const [socialLinks, setSocialLinks] = useState([]);
 
@@ -154,9 +136,10 @@ const Main = ({ navigation }) => {
     }, []);
 
     const handleAddSection = useCallback(() => {
+        
         openBottomSheet(
             <AddSectionSheet
-                onClose={closeBottomSheet}
+                onClose={closeAllSheets}
                 onAdd={(sectionData) => {
                     // Create a new section using our middleware
                     const newSection = createSection(sectionData.type);
@@ -170,37 +153,15 @@ const Main = ({ navigation }) => {
                         setSections(prevSections => [...prevSections, newSection]);
                     }
 
-                    closeBottomSheet();
+                    closeAllSheets();
                 }}
             />,
-            ['80%']
+            ['90%']
         );
-    }, [openBottomSheet, closeBottomSheet]);
+    }, [openBottomSheet, closeAllSheets]);
 
     const handlePreviewWebsite = useCallback(async () => {
-        try {
-            // Construct the preview URL using the websiteDomain
-            const previewUrl = `https://${websiteDomain}`;
-
-            navigation.navigate('WebsitePreview', { websiteDomain });
-            return
-            // Log the URL being opened (for debugging)
-            console.log(`Opening preview: ${previewUrl}`);
-
-            // Open the URL in SafariView
-            const result = await WebBrowser.openBrowserAsync(previewUrl);
-
-            // Optional: Handle the result
-            console.log('Preview result:', result);
-        } catch (error) {
-            // Handle any errors that occur
-            console.error('Error opening preview:', error);
-            Alert.alert(
-                'Preview Error',
-                'Unable to open website preview. Please try again later.',
-                [{ text: 'OK' }]
-            );
-        }
+        navigation.navigate('WebsitePreview', { websiteDomain });
     }, [websiteDomain]);
 
     const handleTabChange = useCallback((tab) => {
@@ -250,7 +211,8 @@ const Main = ({ navigation }) => {
         const handlers = sectionHandlers[item.id];
 
         return (
-            <SectionItem
+            <ContentSection
+                navigation={navigation}
                 section={item}
                 onToggleActive={handlers.toggleActive}
                 onEdit={handlers.edit}
@@ -264,13 +226,13 @@ const Main = ({ navigation }) => {
 
     // Memoize tab components
     const ContentTabComponent = useMemo(() => (
-        <MemoizedContentHeader
+        <ContentHeader
             title="Website Sections"
             subtitle="Drag sections to reorder how they appear on your website"
         />
     ), []);
 
-    const HeaderTabComponent = useMemo(() => <MemoizedHeaderTab />, []);
+    const HeaderTabComponent = useMemo(() => <HeaderTab />, []);
 
     const SocialTabComponent = useMemo(() => (
         <SocialTab
@@ -322,10 +284,21 @@ const Main = ({ navigation }) => {
         SocialTabComponent
     ]);
 
-    // Simple drag end handler without any refs or animations
-    const onDragEnd = useCallback(({ data }) => {
-        // Just update the state directly
-        setSections(data);
+    // In Main.jsx, update the onDragEnd handler
+    const onDragEnd = useCallback(({ data, from, to }) => {
+        // First provide haptic feedback immediately
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+        
+        // Use requestAnimationFrame to ensure the drag animation completes before state update
+        requestAnimationFrame(() => {
+            setSections(data);
+        });
+        
+        // Notify all ContentSection components that dragging has ended
+        // This is a global event that can be listened to by all components
+        if (global.EventEmitter) {
+            global.EventEmitter.emit('DRAG_ENDED');
+        }
     }, []);
 
     // Memoize the content data to prevent re-renders
@@ -333,29 +306,42 @@ const Main = ({ navigation }) => {
         return activeTab === 'content' ? sections : [];
     }, [activeTab, sections]);
 
+    // Check if we need to show the empty state
+    const showEmptyState = activeTab === 'content' && (!sections || sections.length === 0);
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#fff" />
 
-            <DraggableFlatList
-                ref={flatListRef}
-                data={contentData}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
-                onDragEnd={onDragEnd}
-                ListHeaderComponent={ListHeaderComponent}
-                contentContainerStyle={[
-                    styles.listContent
-                ]}
-                activationDistance={5}
-                dragItemOverflow={true}
-                maxToRenderPerBatch={10}
-                updateCellsBatchingPeriod={50}
-                windowSize={21}
-                removeClippedSubviews={false}
-                initialNumToRender={10}
-            />
+            {showEmptyState ? (
+                <>
+                    {/* Show header components even when empty */}
+                    {ListHeaderComponent}
+                    
+                    {/* Show empty state */}
+                    <EmptyState onAddSection={handleAddSection} />
+                </>
+            ) : (
+                <DraggableFlatList
+                    ref={flatListRef}
+                    data={contentData}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id}
+                    showsVerticalScrollIndicator={false}
+                    onDragEnd={onDragEnd}
+                    ListHeaderComponent={ListHeaderComponent}
+                    contentContainerStyle={[
+                        styles.listContent
+                    ]}
+                    activationDistance={5}
+                    dragItemOverflow={true}
+                    maxToRenderPerBatch={10}
+                    updateCellsBatchingPeriod={50}
+                    windowSize={21}
+                    removeClippedSubviews={false}
+                    initialNumToRender={10}
+                />
+            )}
 
             <BottomActions
                 onAddContent={handleAddSection}
@@ -390,6 +376,65 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingBottom: 150,
+    },
+    // Empty state styles
+    emptyStateContainer: {
+        flex: 1,
+        paddingHorizontal: 16,
+        paddingTop: 20,
+    },
+    emptyStateCard: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 20,
+        alignItems: 'center',
+    },
+    emptyStateIconContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    emptyStateIcon: {
+        width: 30,
+        height: 30,
+        tintColor: 'rgba(0,0,0,0.5)',
+    },
+    emptyStateTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#000',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    emptyStateDescription: {
+        fontSize: 14,
+        color: 'rgba(0,0,0,0.6)',
+        textAlign: 'center',
+        marginBottom: 20,
+        lineHeight: 20,
+    },
+    emptyStateButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+    },
+    emptyStateButtonText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#000',
+        marginRight: 8,
+    },
+    emptyStateButtonIcon: {
+        width: 16,
+        height: 16,
+        tintColor: '#000',
     }
 });
 
