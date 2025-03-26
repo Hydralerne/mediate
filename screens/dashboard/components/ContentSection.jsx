@@ -63,15 +63,18 @@ const ContentSectionComponent = ({
         // Get the editor component from middleware
         const EditorComponent = getSectionEditor(section.type);
 
-        console.log('EditorComponent', section.type);
-
         if (EditorComponent) {
-            if (section.type === 'products') {
+            console.log('EditorComponent', section);
+            // Check if this section type should use the full-screen editor
+            // Now including both products and portfolio sections
+            if (section.type == 'portfolio' || section.type == 'products') {
                 navigation.navigate('EditorSheet', {
                     section: section
                 });
-                return
+                return;
             }
+            
+            // Other section types use the bottom sheet editor
             openBottomSheet(
                 <SectionEditorSheet
                     section={section}
@@ -99,7 +102,7 @@ const ContentSectionComponent = ({
                 ['80%']
             );
         }
-    }, [section, onEdit, onDelete, openBottomSheet, closeBottomSheet]);
+    }, [section, onEdit, onDelete, openBottomSheet, closeBottomSheet, navigation]);
 
     const handleToggleActive = useCallback((e) => {
         e.stopPropagation();

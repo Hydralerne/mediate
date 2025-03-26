@@ -48,11 +48,11 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [displayStyle, setDisplayStyle] = useState('grid'); // 'grid', 'horizontal', or 'list'
   const { openBottomSheet, closeBottomSheet } = useBottomSheet();
-  
+
   // Refs for the FlatLists to completely unmount and remount them when switching views
   const horizontalListKey = useRef(`horizontal-${Date.now()}`);
   const verticalListKey = useRef(`vertical-${Date.now()}`);
-  
+
   // Reset list keys when switching between views to force complete remount
   useEffect(() => {
     if (displayStyle === 'horizontal') {
@@ -61,15 +61,15 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       verticalListKey.current = `vertical-${Date.now()}`;
     }
   }, [displayStyle]);
-  
+
   // Save changes - optimized to avoid unnecessary work
   const saveChanges = useCallback(() => {
     setLoading(true);
-    
+
     // Create a new array only if needed
     const nonProductItems = (data.items || []).filter(item => item && item.type !== 'product');
     const updatedItems = [...nonProductItems, ...products];
-    
+
     onSave({
       ...data,
       items: updatedItems,
@@ -78,7 +78,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
         displayStyle
       }
     });
-    
+
     // Use requestAnimationFrame for smoother UI
     requestAnimationFrame(() => {
       setTimeout(() => {
@@ -87,7 +87,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       }, 300); // Reduced timeout for better responsiveness
     });
   }, [data, products, displayStyle, onSave, onClose]);
-  
+
   // Add product - optimized
   const handleAddProduct = useCallback(() => {
     const timestamp = Date.now();
@@ -99,7 +99,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       imageUrl: '',
       description: ''
     };
-    
+
     const sheetId = openBottomSheet(
       <ProductForm
         product={newProduct}
@@ -108,10 +108,10 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
           // Use functional update to avoid stale closures
           setProducts(prev => [...prev, { ...newProduct, ...productData }]);
           closeBottomSheet(sheetId);
-          
+
           // Provide haptic feedback
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          
+
           // Brief loading indicator with requestAnimationFrame
           setLoading(true);
           requestAnimationFrame(() => {
@@ -123,7 +123,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       ['80%']
     );
   }, [openBottomSheet, closeBottomSheet]);
-  
+
   // Edit product - optimized
   const handleEditProduct = useCallback((product) => {
     const sheetId = openBottomSheet(
@@ -132,15 +132,15 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
         isNew={false}
         onSave={(productData) => {
           // Use functional update with map for immutability
-          setProducts(prev => 
-            prev.map(item => 
-              item.id === product.id 
-                ? { ...item, ...productData } 
+          setProducts(prev =>
+            prev.map(item =>
+              item.id === product.id
+                ? { ...item, ...productData }
                 : item
             )
           );
           closeBottomSheet(sheetId);
-          
+
           // Brief loading indicator with requestAnimationFrame
           setLoading(true);
           requestAnimationFrame(() => {
@@ -152,20 +152,20 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       ['80%']
     );
   }, [openBottomSheet, closeBottomSheet]);
-  
+
   // Delete product - optimized
   const handleDeleteProduct = useCallback((productId) => {
     // Use functional update with filter for immutability
     setProducts(prev => prev.filter(item => item.id !== productId));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, []);
-  
+
   // Render grid item for DraggableGrid - memoized
-  const renderGridItem = useCallback((item) => {
+  const renderGridItem = useCallback((item, index) => {
     if (!item) return null;
-    
+
     return (
-      <View style={styles.gridItemContainer} key={item.key}>
+      <View style={[styles.gridItemContainer]} key={item.key}>
         <ProductCard
           item={item}
           onEdit={handleEditProduct}
@@ -175,7 +175,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       </View>
     );
   }, [handleEditProduct, handleDeleteProduct]);
-  
+
   // Render item for horizontal DraggableFlatList - optimized with ScaleDecorator
   const renderHorizontalItem = useCallback(({ item, drag, isActive }) => {
     return (
@@ -196,7 +196,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       </ScaleDecorator>
     );
   }, [handleEditProduct, handleDeleteProduct]);
-  
+
   // Render item for vertical list DraggableFlatList - optimized with ScaleDecorator
   const renderListItem = useCallback(({ item, drag, isActive }) => {
     return (
@@ -217,64 +217,64 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       </ScaleDecorator>
     );
   }, [handleEditProduct, handleDeleteProduct]);
-  
+
   // View toggle buttons - memoized
   const ViewToggleButtons = useMemo(() => (
     <View style={styles.viewToggleContainer}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[
-          styles.viewToggleButton, 
+          styles.viewToggleButton,
           displayStyle === 'grid' && styles.activeViewToggle
         ]}
         onPress={() => setDisplayStyle('grid')}
       >
         <View>
-          <Ionicons 
-            name="grid" 
-            size={20} 
-            color={displayStyle === 'grid' ? '#fff' : '#666'} 
+          <Ionicons
+            name="grid"
+            size={20}
+            color={displayStyle === 'grid' ? '#fff' : '#666'}
           />
         </View>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={[
-          styles.viewToggleButton, 
+          styles.viewToggleButton,
           displayStyle === 'horizontal' && styles.activeViewToggle
         ]}
         onPress={() => setDisplayStyle('horizontal')}
       >
         <View>
-          <Ionicons 
-            name="reorder-horizontal" 
-            size={20} 
-            color={displayStyle === 'horizontal' ? '#fff' : '#666'} 
+          <Ionicons
+            name="reorder-horizontal"
+            size={20}
+            color={displayStyle === 'horizontal' ? '#fff' : '#666'}
           />
         </View>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={[
-          styles.viewToggleButton, 
+          styles.viewToggleButton,
           displayStyle === 'list' && styles.activeViewToggle
         ]}
         onPress={() => setDisplayStyle('list')}
       >
         <View>
-          <Ionicons 
-            name="list" 
-            size={20} 
-            color={displayStyle === 'list' ? '#fff' : '#666'} 
+          <Ionicons
+            name="list"
+            size={20}
+            color={displayStyle === 'list' ? '#fff' : '#666'}
           />
         </View>
       </TouchableOpacity>
     </View>
   ), [displayStyle]);
-  
+
   // Header component - memoized
   const Header = useMemo(() => (
     <View style={styles.improvedHeader}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.headerButton}
         onPress={onClose}
       >
@@ -282,10 +282,10 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
           <Ionicons name="close" size={24} color="#333" />
         </View>
       </TouchableOpacity>
-      
+
       <Text style={styles.headerTitle}>Products</Text>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.headerButton}
         onPress={saveChanges}
       >
@@ -295,7 +295,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       </TouchableOpacity>
     </View>
   ), [onClose, saveChanges]);
-  
+
   // Subheader component - memoized
   const Subheader = useMemo(() => (
     <View style={styles.subHeader}>
@@ -303,10 +303,10 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       {ViewToggleButtons}
     </View>
   ), [products.length, ViewToggleButtons]);
-  
+
   // Add button component - memoized
   const AddButton = useMemo(() => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.addButton}
       onPress={handleAddProduct}
     >
@@ -316,21 +316,21 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       </View>
     </TouchableOpacity>
   ), [handleAddProduct]);
-  
+
   // Empty state
   if (products.length === 0) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
           {Header}
-          
+
           <View style={styles.emptyState}>
             <Ionicons name="basket-outline" size={64} color="#ccc" />
             <Text style={styles.emptyTitle}>No Products Yet</Text>
             <Text style={styles.emptyDescription}>
               Add products to showcase on your website
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.emptyAddButton}
               onPress={handleAddProduct}
             >
@@ -343,7 +343,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       </SafeAreaView>
     );
   }
-  
+
   // Render the appropriate view based on displayStyle - optimized for performance
   const renderProductList = () => {
     if (displayStyle === 'grid') {
@@ -413,19 +413,19 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       );
     }
   };
-  
+
   // Main view - optimized
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {Header}
         {Subheader}
-        
+
         <View style={styles.gridContainer}>
           {renderProductList()}
           {AddButton}
         </View>
-        
+
         {loading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="small" color={colors.primary || '#000'} />
@@ -495,15 +495,15 @@ const styles = StyleSheet.create({
   },
   gridContainer: {
     flex: 1,
-    paddingBottom: 80, // Space for the add button
+    paddingBottom: 80,
   },
   grid: {
-    padding: 16,
+    // padding: 16,
   },
   gridItemContainer: {
     width: '100%',
     height: '100%',
-    padding: 8,
+    paddingRight: 16,
   },
   horizontalList: {
     paddingHorizontal: 16,
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButtonText: {
-    color: '#fff',
+    color:'#fff',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

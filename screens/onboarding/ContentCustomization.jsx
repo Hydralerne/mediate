@@ -1,43 +1,21 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import React, { memo, useState, useContext, useEffect } from 'react';
-import TouchableButton from '../../components/global/ButtonTap';
-import colors from '../../utils/colors';
 import { OnboardingContext } from '../../contexts/OnboardingContext';
 import { useBottomSheet } from '../../contexts/BottomSheet';
 import Wrapper from './Wrapper';
+import colors from '../../utils/colors';
 
 // Import from our middleware
 import { 
-  SECTION_TYPES, 
-  getSectionMetadata, 
-  getSectionIcon,
-  getConfigComponent
+    getSectionMetadata, 
+    getSectionIcon,
+    getAllSectionTypes,
+    getSectionEditor,
+    createSection
 } from '../../components/sections/index';
 
-// Content configuration sheets for each section type
-const AboutMeSheet = ({ onSave, initialData = {} }) => {
-    const [bio, setBio] = useState(initialData.bio || '');
-
-    return (
-        <View style={styles.sheetContainer}>
-            <Text style={styles.sheetTitle}>About Me</Text>
-            <TextInput
-                style={styles.textInput}
-                placeholder="Write a short bio about yourself..."
-                multiline
-                value={bio}
-                onChangeText={setBio}
-            />
-            <TouchableButton
-                style={styles.saveButton}
-                onPress={() => onSave({ bio })}
-            >
-                <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableButton>
-        </View>
-    );
-};
-
+// Import SectionEditorSheet
+import SectionEditorSheet from '../dashboard/components/SectionEditorSheet';
 
 // Content section component
 const ContentSection = ({ title, description, icon, onPress, isActive, onConfigure }) => (
@@ -91,7 +69,7 @@ const ContentCustomization = memo(({ navigation }) => {
         }
     }, [contentSections, contentData, isLoading]);
 
-    const { openBottomSheet } = useBottomSheet();
+    const { openBottomSheet, closeBottomSheet } = useBottomSheet();
 
     const toggleSection = (sectionKey) => {
         const updatedSections = {
@@ -109,19 +87,41 @@ const ContentCustomization = memo(({ navigation }) => {
     };
 
     const configureSection = (sectionKey) => {
-        // Get the configuration component for this section type
-        const ConfigComponent = getConfigComponent(sectionKey);
+        // Get the editor component for this section type
+        const EditorComponent = getSectionEditor(sectionKey);
         
-        if (ConfigComponent) {
-            openBottomSheet(
-                <ConfigComponent
-                    onSave={(data) => saveConfigData(sectionKey, data)}
-                    initialData={localSectionData[sectionKey] || {}}
-                />
-            );
-        } else {
-            console.log(`No configuration component found for ${sectionKey}`);
+        if (!EditorComponent) {
+            console.log(`No editor component found for ${sectionKey}`);
+            return;
         }
+        
+        // Get or create a section object
+        let section = localSectionData[sectionKey];
+        if (!section) {
+            section = createSection(sectionKey);
+        }
+        
+        // Special case for products section
+        if (sectionKey === 'products') {
+            navigation.navigate('EditorSheet', { section });
+            return;
+        }
+
+        // Open the section editor sheet
+        const sheetId = openBottomSheet(
+            <SectionEditorSheet
+                section={section}
+                EditorComponent={EditorComponent}
+                onSave={(content) => {
+                    saveConfigData(sectionKey, content);
+                    closeBottomSheet(sheetId);
+                }}
+                onDelete={() => closeBottomSheet(sheetId)}
+                onShare={() => {}} // No-op for onboarding
+                onClose={() => closeBottomSheet(sheetId)}
+            />,
+            ['80%']
+        );
     };
 
     const saveConfigData = (sectionKey, data) => {
@@ -146,7 +146,7 @@ const ContentCustomization = memo(({ navigation }) => {
     }
 
     // Get all section types
-    const allSectionTypes = Object.values(SECTION_TYPES);
+    const allSectionTypes = Object.values(getAllSectionTypes());
 
     return (
         <Wrapper allowScroll={true} navigation={navigation}>

@@ -22,7 +22,8 @@ const ProductCard = ({
         isGrid ? styles.gridCard : 
         isHorizontal ? styles.horizontalCard : 
         styles.listCard, 
-        isActive && styles.activeCard
+        isActive && styles.activeCard,
+        isGrid && { margin: 10 }
       ]}
     >
       {/* Image */}

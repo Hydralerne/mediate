@@ -47,7 +47,7 @@ const WebsiteCard = ({ item, onPress, index }) => {
           {image ? (
             <Image source={{ uri: image }} style={styles.image} />
           ) : (
-            <Text style={styles.imagePlaceholderText}>{name.charAt(0)}</Text>
+            <Text style={styles.imagePlaceholderText}>{name?.charAt(0)}</Text>
           )}
         </View>
 

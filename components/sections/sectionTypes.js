@@ -11,6 +11,7 @@ export function getSectionIcon(type) {
 export const SECTION_METADATA = {
   portfolio: {
     id: 'portfolio',
+    navigation: 'page',
     title: 'Portfolio Showcase',
     description: 'Display your work and projects',
     defaultActive: false,
@@ -18,6 +19,7 @@ export const SECTION_METADATA = {
   },
   products: {
     id: 'products',
+    navigation: 'page',
     title: 'Products',
     description: 'Showcase items you\'re selling',
     defaultActive: false,

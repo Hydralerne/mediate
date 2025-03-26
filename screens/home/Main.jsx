@@ -11,46 +11,55 @@ import {
   FlatList
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { request } from '../../utils/requests';
+import { getToken } from '../../utils/token';
 
 // Components
 import Header from './components/Header';
 import QuickStatCard from './components/QuickStatCard';
 import WebsiteCard from './components/WebsiteCard';
+import WebsiteCardSkeleton from './components/WebsiteCardSkeleton';
 import ActivityItem from './components/ActivityItem';
+import ActivityItemSkeleton from './components/ActivityItemSkeleton';
 import EmptyState from './components/EmptyState';
 import BottomNavigation from './components/BottomNavigation';
 
 const Main = () => {
   const navigation = useNavigation();
-  const [websites, setWebsites] = useState([
-    {
-      id: '1',
-      name: 'Design Portfolio',
-      domain: 'design.oblien.com',
-      visits: 1243,
-      lastUpdated: '2 days ago',
-      image: null,
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: 'Photography',
-      domain: 'photo.oblien.com',
-      visits: 856,
-      lastUpdated: '1 week ago',
-      image: null,
-      status: 'active'
-    },
-    {
-      id: '3',
-      name: 'Personal Blog',
-      domain: 'blog.oblien.com',
-      visits: 432,
-      lastUpdated: '3 days ago',
-      image: null,
-      status: 'draft'
-    }
-  ]);
+  const [websites, setWebsites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWebsites = async () => {
+      try {
+        setLoading(true);
+        const token = await getToken();
+        const response = await request('https://api.oblien.com/sites', {}, 'GET', { Authorization: `Bearer ${token}` });
+        setWebsites(response.data || []);
+      } catch (error) {
+        console.error('Error fetching websites:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    const fetchActivities = async () => {
+      try {
+        // This is a placeholder for the actual API call
+        // Simulating network delay
+        setTimeout(() => {
+          setActivitiesLoading(false);
+        }, 1500);
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+        setActivitiesLoading(false);
+      }
+    };
+    
+    fetchWebsites();
+    fetchActivities();
+  }, []);
 
   const [activeTab, setActiveTab] = useState('home');
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -96,6 +105,28 @@ const Main = () => {
     // navigation.navigate('OnboardingWelcome');
   };
 
+  // Render website skeletons
+  const renderWebsiteSkeletons = () => {
+    return (
+      <View style={styles.websitesList}>
+        <WebsiteCardSkeleton />
+        <WebsiteCardSkeleton />
+        <WebsiteCardSkeleton />
+      </View>
+    );
+  };
+
+  // Render activity skeletons
+  const renderActivitySkeletons = () => {
+    return (
+      <>
+        <ActivityItemSkeleton />
+        <ActivityItemSkeleton />
+        <ActivityItemSkeleton />
+      </>
+    );
+  };
+
   return (
     <>
       <StatusBar barStyle="dark-content" />
@@ -134,7 +165,7 @@ const Main = () => {
               />
               <QuickStatCard
                 title="Websites"
-                value={websites.length.toString()}
+                value={loading ? "..." : websites?.length?.toString()}
                 color="#000"
                 icon={require('../../assets/icons/home/website code-61-1658431404.png')}
               />
@@ -154,7 +185,9 @@ const Main = () => {
               </TouchableOpacity>
             </View>
 
-            {websites.length > 0 ? (
+            {loading ? (
+              renderWebsiteSkeletons()
+            ) : websites.length > 0 ? (
               <View style={styles.websitesList}>
                 {websites.map((website, index) => (
                   <WebsiteCard
@@ -180,23 +213,29 @@ const Main = () => {
             </View>
 
             <View style={styles.activityCard}>
-              <ActivityItem
-                title="New visitor on Design Portfolio"
-                time="10 minutes ago"
-                color="#000"
-              />
+              {activitiesLoading ? (
+                renderActivitySkeletons()
+              ) : (
+                <>
+                  <ActivityItem
+                    title="New visitor on Design Portfolio"
+                    time="10 minutes ago"
+                    color="#000"
+                  />
 
-              <ActivityItem
-                title="New message from John Doe"
-                time="2 hours ago"
-                color="#000"
-              />
+                  <ActivityItem
+                    title="New message from John Doe"
+                    time="2 hours ago"
+                    color="#000"
+                  />
 
-              <ActivityItem
-                title="Photography website updated"
-                time="Yesterday"
-                color="#000"
-              />
+                  <ActivityItem
+                    title="Photography website updated"
+                    time="Yesterday"
+                    color="#000"
+                  />
+                </>
+              )}
             </View>
           </View>
 

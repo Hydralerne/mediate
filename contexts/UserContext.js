@@ -39,7 +39,7 @@ export const UserProvider = ({ children }) => {
             const token = await getToken();
 
             const data = await request(
-                'https://api.onvo.me/v2/status',
+                'https://api.oblien.com/auth/status',
                 {
                     os: Platform.OS,
                     info,
@@ -55,32 +55,32 @@ export const UserProvider = ({ children }) => {
             );
 
             if (!data) {
-                throw new Error("Empty response from server");
+                // throw new Error("Empty response from server");
             }
 
             if (data.error) {
-                Alert.alert(data.type, data.message);
+                // Alert.alert(data.type, data.message);
             }
 
             if (data.status) {
                 setUserData(data);
                 await saveData('userData', data);
             } else {
-                Alert.alert(
-                    'Error occurred',
-                    "Looks like there's an issue with the connection. Want to try again?",
-                    [
-                        {
-                            text: 'Try again',
-                            onPress: fetchUserData, // FIXED: Calls fetchUserData function
-                        },
-                        {
-                            text: 'Cancel',
-                            style: 'cancel',
-                        },
-                    ],
-                    { cancelable: true }
-                );
+                // Alert.alert(
+                //     'Error occurred',
+                //     "Looks like there's an issue with the connection. Want to try again?",
+                //     [
+                //         {
+                //             text: 'Try again',
+                //             onPress: fetchUserData, // FIXED: Calls fetchUserData function
+                //         },
+                //         {
+                //             text: 'Cancel',
+                //             style: 'cancel',
+                //         },
+                //     ],
+                //     { cancelable: true }
+                // );
             }
         } catch (error) {
             console.error('Error fetching user data:', error);

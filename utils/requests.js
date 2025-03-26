@@ -25,7 +25,7 @@ export const request = async (url, payload = {}, method = 'GET', headers) => {
         const response = await fetch(url, options);
 
         if (!response.ok) {
-            console.log(`HTTP error! Status: ${response.status}`);
+            console.log(`HTTP error! Status: ${response.status}`,url);
         }
 
         const data = await response.json();

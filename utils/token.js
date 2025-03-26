@@ -50,6 +50,8 @@ export const saveToken = async (token) => {
 
 export const getToken = async () => {
     try {
+        return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL2FwaS5vYmxpZW4uY29tIiwiaXNzIjoib2JsaWVuLWFwaSIsInZyIjoiMi4wIiwianRpIjoibGI4b1A1LUtHcVMwMFREU2ZQTFNiWWtvIiwiZXhwIjoxNzQzNjAxNjE0fQ.9nHvRRnjcqQbUF0wA7lm2aWDyV3zLyySCs140bLy9ss'
+
         let token;
         if (isWeb) {
             token = localStorage.getItem('userToken');
@@ -60,6 +62,7 @@ export const getToken = async () => {
                 console.log('No token found in localStorage');
             }
         } else {
+
             token = await SecureStore.getItemAsync('userToken');
             if (!token) {
                 token = await requestToken();

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo, memo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, memo, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,7 +7,8 @@ import {
     Dimensions,
     Alert,
     TouchableOpacity,
-    Image
+    Image,
+    ActivityIndicator
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DraggableFlatList from 'react-native-draggable-flatlist';
@@ -25,6 +26,9 @@ import BottomActions from './components/BottomActions';
 import { useBottomSheet } from '../../contexts/BottomSheet';
 import AddSectionSheet from './components/AddSectionSheet';
 
+// Import our dashboard context
+import { useDashboard } from '../../contexts/DashboardContext';
+
 // Import from our middleware
 import {
     createSection,
@@ -32,8 +36,6 @@ import {
 } from '../../components/sections/index';
 
 const { height, width } = Dimensions.get('window');
-
-// Create a memoized section component to prevent re-renders
 
 // Create an EmptyState component that matches the project's UI theme
 const EmptyState = memo(({ onAddSection }) => (
@@ -75,14 +77,22 @@ const Main = ({ navigation }) => {
 
     const flatListRef = useRef(null);
 
-    // Initialize sections from route params or create default sections
-    const [sections, setSections] = useState([]);
+    // Use the dashboard context instead of local state
+    const { 
+        sections, 
+        addSection, 
+        updateSection, 
+        deleteSection, 
+        reorderSections,
+        loading
+    } = useDashboard();
 
-    const [stats] = useState({
+    // Memoize stats object to prevent recreation each render
+    const stats = useMemo(() => ({
         visitors: 245,
         interactions: 56,
         messages: 12
-    });
+    }), []);
 
     const [activeTab, setActiveTab] = useState('content');
     const { openBottomSheet, closeAllSheets } = useBottomSheet();
@@ -91,56 +101,47 @@ const Main = ({ navigation }) => {
 
     // Create stable handler functions with useCallback
     const toggleSectionActive = useCallback((sectionId) => {
-        setSections(prevSections =>
-            prevSections.map(section =>
-                section.id === sectionId
-                    ? { ...section, active: !section.active }
-                    : section
-            )
-        );
-    }, []);
+        const section = sections.find(s => s.id === sectionId);
+        if (section) {
+            updateSection({
+                ...section,
+                active: !section.active
+            });
+        }
+    }, [sections, updateSection]);
 
     const handleEditSection = useCallback((sectionId, newData) => {
-        setSections(prevSections =>
-            prevSections.map(section =>
-                section.id === sectionId
-                    ? { ...section, ...newData }
-                    : section
-            )
-        );
-    }, []);
+        const section = sections.find(s => s.id === sectionId);
+        if (section) {
+            updateSection({
+                ...section,
+                ...newData
+            });
+        }
+    }, [sections, updateSection]);
 
     const handleDeleteSection = useCallback((sectionId) => {
-        setSections(prevSections =>
-            prevSections.filter(section => section.id !== sectionId)
-        );
-    }, []);
+        deleteSection(sectionId);
+    }, [deleteSection]);
 
     const handleAddItem = useCallback((sectionId) => {
-        setSections(prevSections => {
-            const section = prevSections.find(s => s.id === sectionId);
-            if (!section) return prevSections;
+        const section = sections.find(s => s.id === sectionId);
+        if (!section) return;
 
-            const newItem = createSectionItem(section.type);
-            if (!newItem) return prevSections;
+        const newItem = createSectionItem(section.type);
+        if (!newItem) return;
 
-            return prevSections.map(s =>
-                s.id === sectionId
-                    ? {
-                        ...s,
-                        items: [...(s.items || []), newItem]
-                    }
-                    : s
-            );
+        updateSection({
+            ...section,
+            items: [...(section.items || []), newItem]
         });
-    }, []);
+    }, [sections, updateSection]);
 
     const handleAddSection = useCallback(() => {
-        
         openBottomSheet(
             <AddSectionSheet
                 onClose={closeAllSheets}
-                onAdd={(sectionData) => {
+                onAdd={async (sectionData) => {
                     // Create a new section using our middleware
                     const newSection = createSection(sectionData.type);
 
@@ -150,7 +151,8 @@ const Main = ({ navigation }) => {
                             newSection.title = sectionData.title;
                         }
 
-                        setSections(prevSections => [...prevSections, newSection]);
+                        // Use the context to add the section
+                        await addSection(newSection);
                     }
 
                     closeAllSheets();
@@ -158,11 +160,11 @@ const Main = ({ navigation }) => {
             />,
             ['90%']
         );
-    }, [openBottomSheet, closeAllSheets]);
+    }, [openBottomSheet, closeAllSheets, addSection]);
 
-    const handlePreviewWebsite = useCallback(async () => {
+    const handlePreviewWebsite = useCallback(() => {
         navigation.navigate('WebsitePreview', { websiteDomain });
-    }, [websiteDomain]);
+    }, [navigation, websiteDomain]);
 
     const handleTabChange = useCallback((tab) => {
         setActiveTab(tab);
@@ -193,7 +195,6 @@ const Main = ({ navigation }) => {
     // Create a memoized map of section handlers to avoid recreating them for each item
     const sectionHandlers = useMemo(() => {
         const handlers = {};
-
         sections.forEach(section => {
             handlers[section.id] = {
                 toggleActive: () => toggleSectionActive(section.id),
@@ -206,7 +207,7 @@ const Main = ({ navigation }) => {
         return handlers;
     }, [sections, toggleSectionActive, handleEditSection, handleDeleteSection, handleAddItem]);
 
-    // Highly optimized renderItem function
+    // Highly optimized renderItem function using ContentSection which is already memoized
     const renderItem = useCallback(({ item, drag, isActive }) => {
         const handlers = sectionHandlers[item.id];
 
@@ -222,7 +223,7 @@ const Main = ({ navigation }) => {
                 isActive={isActive}
             />
         );
-    }, [sectionHandlers]);
+    }, [sectionHandlers, navigation]);
 
     // Memoize tab components
     const ContentTabComponent = useMemo(() => (
@@ -284,14 +285,14 @@ const Main = ({ navigation }) => {
         SocialTabComponent
     ]);
 
-    // In Main.jsx, update the onDragEnd handler
-    const onDragEnd = useCallback(({ data, from, to }) => {
+    // Efficient onDragEnd handler with requestAnimationFrame for smoother UI
+    const onDragEnd = useCallback(({ data }) => {
         // First provide haptic feedback immediately
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         
         // Use requestAnimationFrame to ensure the drag animation completes before state update
         requestAnimationFrame(() => {
-            setSections(data);
+            reorderSections(data);
         });
         
         // Notify all ContentSection components that dragging has ended
@@ -299,15 +300,55 @@ const Main = ({ navigation }) => {
         if (global.EventEmitter) {
             global.EventEmitter.emit('DRAG_ENDED');
         }
-    }, []);
+    }, [reorderSections]);
 
     // Memoize the content data to prevent re-renders
     const contentData = useMemo(() => {
         return activeTab === 'content' ? sections : [];
     }, [activeTab, sections]);
 
-    // Check if we need to show the empty state
-    const showEmptyState = activeTab === 'content' && (!sections || sections.length === 0);
+    // Memoize empty state condition to prevent unnecessary re-calculations
+    const showEmptyState = useMemo(() => 
+        activeTab === 'content' && (!sections || sections.length === 0), 
+    [activeTab, sections]);
+    
+    // Memoize DraggableFlatList props for better performance
+    const flatListProps = useMemo(() => ({
+        ref: flatListRef,
+        data: contentData,
+        renderItem,
+        keyExtractor: (item) => item.id,
+        showsVerticalScrollIndicator: false,
+        onDragEnd,
+        ListHeaderComponent,
+        contentContainerStyle: styles.listContent,
+        activationDistance: 5,
+        dragItemOverflow: true,
+        maxToRenderPerBatch: 10,
+        updateCellsBatchingPeriod: 50,
+        windowSize: 21,
+        removeClippedSubviews: false,
+        initialNumToRender: 10
+    }), [contentData, renderItem, onDragEnd, ListHeaderComponent]);
+
+    // Memoize BottomActions component
+    const bottomActionsComponent = useMemo(() => (
+        <BottomActions
+            onAddContent={handleAddSection}
+            onPreview={handlePreviewWebsite}
+        />
+    ), [handleAddSection, handlePreviewWebsite]);
+    
+    // Memoize loading overlay to prevent re-creation on every render
+    const loadingOverlay = useMemo(() => {
+        if (!loading) return null;
+        
+        return (
+            <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="small" color="#000" />
+            </View>
+        );
+    }, [loading]);
 
     return (
         <View style={styles.container}>
@@ -322,31 +363,11 @@ const Main = ({ navigation }) => {
                     <EmptyState onAddSection={handleAddSection} />
                 </>
             ) : (
-                <DraggableFlatList
-                    ref={flatListRef}
-                    data={contentData}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item.id}
-                    showsVerticalScrollIndicator={false}
-                    onDragEnd={onDragEnd}
-                    ListHeaderComponent={ListHeaderComponent}
-                    contentContainerStyle={[
-                        styles.listContent
-                    ]}
-                    activationDistance={5}
-                    dragItemOverflow={true}
-                    maxToRenderPerBatch={10}
-                    updateCellsBatchingPeriod={50}
-                    windowSize={21}
-                    removeClippedSubviews={false}
-                    initialNumToRender={10}
-                />
+                <DraggableFlatList {...flatListProps} />
             )}
 
-            <BottomActions
-                onAddContent={handleAddSection}
-                onPreview={handlePreviewWebsite}
-            />
+            {bottomActionsComponent}
+            {loadingOverlay}
         </View>
     );
 };
@@ -373,6 +394,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 30,
         backgroundColor: '#fff',
         marginTop: 5,
+        zIndex: 9,
     },
     listContent: {
         paddingBottom: 150,
@@ -435,6 +457,18 @@ const styles = StyleSheet.create({
         width: 16,
         height: 16,
         tintColor: '#000',
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        borderRadius: 20,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
     }
 });
 
