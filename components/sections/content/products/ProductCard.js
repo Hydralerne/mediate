@@ -3,25 +3,25 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../../../utils/colors';
 
-const ProductCard = ({ 
-  item, 
-  onEdit, 
-  onDelete, 
-  isActive = false, 
-  displayStyle = 'grid' 
+const ProductCard = ({
+  item,
+  onEdit,
+  onDelete,
+  isActive = false,
+  displayStyle = 'grid'
 }) => {
   if (!item) return null;
-  
+
   const isGrid = displayStyle === 'grid';
   const isHorizontal = displayStyle === 'horizontal';
   const isList = displayStyle === 'list';
-  
+
   return (
-    <View 
+    <View
       style={[
-        isGrid ? styles.gridCard : 
-        isHorizontal ? styles.horizontalCard : 
-        styles.listCard, 
+        isGrid ? styles.gridCard :
+          isHorizontal ? styles.horizontalCard :
+            styles.listCard,
         isActive && styles.activeCard,
         isGrid && { margin: 10 }
       ]}
@@ -32,9 +32,9 @@ const ProductCard = ({
         isList && styles.listImageContainer
       ]}>
         {item.imageUrl ? (
-          <Image 
-            source={{ uri: item.imageUrl }} 
-            style={styles.productImage} 
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={[styles.productImage, isList && { borderRadius: 12, overflow: 'hidden' }]}
             resizeMode="cover"
           />
         ) : (
@@ -43,65 +43,63 @@ const ProductCard = ({
           </View>
         )}
       </View>
-      
-      {/* Info */}
-      <View style={[
-        styles.infoContainer,
-        isList && styles.listInfoContainer
-      ]}>
-        <Text style={[
-          styles.productTitle, 
-          isList && styles.listProductTitle
-        ]} numberOfLines={1}>
-          {item.title || 'Untitled Product'}
-        </Text>
-        <Text style={styles.productPrice}>
-          {item.price ? `$${item.price}` : 'No price'}
-        </Text>
-        
-        {/* Featured badge for list view */}
-        {isList && item.featured && (
-          <View style={styles.listFeaturedBadge}>
-            <Ionicons name="star" size={12} color="#fff" />
-            <Text style={styles.featuredText}>Featured</Text>
-          </View>
-        )}
+
+      <View style={[!isList && styles.bottomContainer]}>
+        {/* Info */}
+        <View style={[
+          styles.infoContainer,
+          isList && styles.listInfoContainer
+        ]}>
+          <Text style={[
+            styles.productTitle,
+            isList && styles.listProductTitle
+          ]} numberOfLines={1}>
+            {item.title || 'Untitled Product'}
+          </Text>
+          <Text style={styles.productPrice}>
+            {item.price ? `$${item.price}` : 'No price'}
+          </Text>
+
+          {/* Featured badge for list view */}
+          {isList && item.featured && (
+            <View style={styles.listFeaturedBadge}>
+              <Ionicons name="star" size={12} color="#fff" />
+              <Text style={styles.featuredText}>Featured</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Drag handle - more visible */}
+        <View style={[
+          styles.dragHandleContainer,
+          isList && styles.listDragHandleContainer
+        ]}>
+          <Image source={require('../../../../assets/icons/home/menu-62-1661490995.png')} style={styles.dragHandleImage} />
+        </View>
       </View>
-      
       {/* Edit button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[
           styles.editButton,
           isList && styles.listEditButton
         ]}
         onPress={() => onEdit(item)}
       >
-        <View>
-          <Ionicons name="pencil" size={16} color="#fff" />
-        </View>
+        <Image source={require('../../../../assets/icons/home/pen-83-1666783638.png')} style={styles.editButtonImage} />
       </TouchableOpacity>
-      
+
       {/* Delete button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[
           styles.deleteButton,
           isList && styles.listDeleteButton
         ]}
         onPress={() => onDelete(item.id)}
       >
-        <View>
-          <Ionicons name="trash" size={16} color="#fff" />
-        </View>
+        <Image source={require('../../../../assets/icons/home/delete-29-1661490994.png')} style={styles.deleteButtonImage} />
       </TouchableOpacity>
-      
-      {/* Drag handle - more visible */}
-      <View style={[
-        styles.dragHandleContainer,
-        isList && styles.listDragHandleContainer
-      ]}>
-        <Ionicons name="menu" size={18} color="#666" />
-      </View>
-      
+
+
       {/* Featured badge for grid and horizontal views */}
       {!isList && item.featured && (
         <View style={styles.featuredBadge}>
@@ -114,6 +112,28 @@ const ProductCard = ({
 };
 
 const styles = StyleSheet.create({
+  editButtonImage: {
+    width: 20,
+    height: 20,
+    tintColor: '#fff',
+  },
+  bottomContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dragHandleImage: {
+    width: 20,
+    height: 20,
+    tintColor: '#666',
+    right: 4,
+    position: 'absolute',
+  },
+  deleteButtonImage: {
+    width: 20,
+    height: 20,
+    tintColor: '#fff',
+  },
   gridCard: {
     width: '100%',
     height: '100%',
@@ -170,6 +190,8 @@ const styles = StyleSheet.create({
     width: 100,
     height: '100%',
     aspectRatio: 1,
+    overflow: 'hidden',
+    borderRadius: 12,
   },
   productImage: {
     width: '100%',
@@ -186,6 +208,7 @@ const styles = StyleSheet.create({
   },
   listInfoContainer: {
     flex: 1,
+    position: 'absolute',
     justifyContent: 'center',
     paddingRight: 50, // Space for buttons
   },
@@ -237,19 +260,19 @@ const styles = StyleSheet.create({
   },
   dragHandleContainer: {
     position: 'absolute',
-    bottom: 8,
-    right: 8,
+    right: 0,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 3,
   },
   listDragHandleContainer: {
     top: 8,
-    bottom: 'auto',
+    position: 'absolute',
+    right: 0,
+    // bottom: 'auto',
   },
   featuredBadge: {
     position: 'absolute',

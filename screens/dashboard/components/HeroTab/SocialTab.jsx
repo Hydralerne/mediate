@@ -1,9 +1,9 @@
 import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import ContentHeader from './ContentHeader';
-import { useBottomSheet } from '../../../contexts/BottomSheet';
-import { socialIcons } from '../../onboarding/components/SocialIcons';
-import AddSocialSheet from './AddSocialSheet';
+import ContentHeader from '../ContentHeader';
+import { useBottomSheet } from '../../../../contexts/BottomSheet';
+import { socialIcons } from '../../../onboarding/components/SocialIcons';
+import AddSocialSheet from '../AddSocialSheet';
 
 // Define the component first, then wrap it with memo
 const SocialTabComponent = ({ 
@@ -58,7 +58,7 @@ const SocialTabComponent = ({
                                     onPress={() => onRemoveSocialLink(social.type)}
                                 >
                                     <Image 
-                                        source={require('../../../assets/icons/home/trash-17-1658431404.png')} 
+                                        source={require('../../../../assets/icons/home/trash-17-1658431404.png')} 
                                         style={styles.removeIcon} 
                                     />
                                 </TouchableOpacity>
@@ -68,7 +68,7 @@ const SocialTabComponent = ({
                 ) : (
                     <View style={styles.emptyContainer}>
                         <Image 
-                            source={require('../../../assets/icons/home/link-57-1663582874.png')} 
+                            source={require('../../../../assets/icons/home/link-57-1663582874.png')} 
                             style={styles.emptyIcon} 
                         />
                         <Text style={styles.emptyTitle}>No Social Links Added</Text>

@@ -21,7 +21,7 @@ import ProjectsList from './ProjectsList';
 import PortfolioSettings from './PortfolioSettings';
 
 // Dashboard editor component for Portfolio section
-export const EditorSheet = ({ data, onSave, onClose }) => {
+export const EditorSheet = ({ data = {}, onSave, onClose }) => {
   // Access bottom sheet context
   const { openBottomSheet, closeAllSheets } = useBottomSheet();
 
@@ -29,8 +29,11 @@ export const EditorSheet = ({ data, onSave, onClose }) => {
   const slideAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
   
+  // Use refs to prevent infinite loops with changing data
+  const dataRef = useRef(data);
+  
   // State for projects and project form
-  const [projects, setProjects] = useState(data.items?.filter(item => item && item.type === 'project') || []);
+  const [projects, setProjects] = useState([]);
   const [currentProject, setCurrentProject] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const initialDataRef = useRef(null);
@@ -42,6 +45,7 @@ export const EditorSheet = ({ data, onSave, onClose }) => {
     showProjectLinks: data.settings?.showProjectLinks !== false,
     showTags: data.settings?.showTags !== false,
     sortableEnabled: data.settings?.sortableEnabled !== false,
+    showProjectImages: data.settings?.showProjectImages !== false,
   });
   
   // State for toggling between projects and settings tab
@@ -50,33 +54,39 @@ export const EditorSheet = ({ data, onSave, onClose }) => {
   // State for loading
   const [loading, setLoading] = useState(false);
 
-  // Load initial data on component mount
+  // Load initial data on component mount - using useEffect with empty deps
   useEffect(() => {
-    if (data) {
-      // Make sure each project has a key property
-      const projectsWithKeys = (data.items || []).map(project => ({
-        ...project,
-        key: project.id.toString()
-      }));
+    // Only run this once on mount
+    if (dataRef.current) {
+      const currentData = dataRef.current;
+      
+      // Initialize projects with keys
+      const projectsWithKeys = (currentData.items || [])
+        .filter(item => item && item.type === 'project')
+        .map(project => ({
+          ...project,
+          key: project.id.toString()
+        }));
       
       setProjects(projectsWithKeys);
       
-      if (data.settings) {
+      // Initialize settings
+      if (currentData.settings) {
         setSettings(prevSettings => ({
           ...prevSettings,
-          ...data.settings
+          ...currentData.settings
         }));
       }
       
       // Store initial data for comparison
       initialDataRef.current = JSON.stringify({
         items: projectsWithKeys,
-        settings: data.settings || settings
+        settings: currentData.settings || settings
       });
     }
-  }, [data]);
+  }, []); // Empty dependency array = only run once on mount
 
-  // Track changes to determine if user has unsaved work
+  // Track changes to determine if user has unsaved work - safe to have deps
   useEffect(() => {
     if (initialDataRef.current) {
       const currentData = JSON.stringify({ 

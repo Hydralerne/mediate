@@ -20,8 +20,8 @@ import QuickStats from './components/QuickStats';
 import ContentSection from './components/ContentSection';
 import TabSelector from './components/TabSelector';
 import ContentHeader from './components/ContentHeader';
-import HeaderTab from './components/HeaderTab';
-import SocialTab from './components/SocialTab';
+import HeaderTab from './components/HeaderTab/Main';
+import SocialTab from './components/HeroTab/SocialTab';
 import BottomActions from './components/BottomActions';
 import { useBottomSheet } from '../../contexts/BottomSheet';
 import AddSectionSheet from './components/AddSectionSheet';
@@ -68,12 +68,7 @@ const EmptyState = memo(({ onAddSection }) => (
 const Main = ({ navigation }) => {
     const route = useRoute();
     const insets = useSafeAreaInsets();
-    const { websiteId, websiteName, websiteDomain, initialSections } = route.params || {
-        websiteId: '1',
-        websiteName: 'My Website',
-        websiteDomain: 'mywebsite.oblien.com',
-        initialSections: null
-    };
+    const { websiteId, websiteName, websiteDomain } = route.params
 
     const flatListRef = useRef(null);
 
@@ -84,8 +79,17 @@ const Main = ({ navigation }) => {
         updateSection, 
         deleteSection, 
         reorderSections,
-        loading
+        loading,
+        setActiveWebsite,
+        hasUnsavedChanges
     } = useDashboard();
+    
+    // Set the active website when component mounts
+    useEffect(() => {
+        if (websiteId) {
+            setActiveWebsite(websiteId);
+        }
+    }, []);
 
     // Memoize stats object to prevent recreation each render
     const stats = useMemo(() => ({
@@ -252,6 +256,7 @@ const Main = ({ navigation }) => {
                     websiteName={websiteName}
                     websiteDomain={websiteDomain}
                     onShare={() => { }}
+                    hasUnsavedChanges={hasUnsavedChanges}
                     onSettings={() => { }}
                 />
 

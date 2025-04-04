@@ -4,15 +4,14 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Image,
     ScrollView,
     Alert,
     Platform
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
-import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import ImageHandler from '../../../global/ImageHandler';
 
 const ProjectForm = ({
     project,
@@ -26,7 +25,6 @@ const ProjectForm = ({
     const [tags, setTags] = useState([]);
     const [newTag, setNewTag] = useState('');
     const [errors, setErrors] = useState({});
-    const [imageSource, setImageSource] = useState('url'); // 'url' or 'device'
 
     const titleInputRef = useRef(null);
 
@@ -79,35 +77,6 @@ const ProjectForm = ({
         const newTags = [...tags];
         newTags.splice(index, 1);
         setTags(newTags);
-    };
-
-    const pickImage = async () => {
-        try {
-            // Request permissions
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-            if (status !== 'granted') {
-                Alert.alert('Permission Required', 'Please allow access to your photo library to select project images.');
-                return;
-            }
-
-            // Launch image picker with square aspect ratio
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1], // Square aspect ratio
-                quality: 0.8,
-            });
-
-            if (!result.canceled && result.assets && result.assets.length > 0) {
-                // Use the selected image URI
-                setImageUrl(result.assets[0].uri);
-                setImageSource('device');
-            }
-        } catch (error) {
-            console.error('Error picking image:', error);
-            Alert.alert('Error', 'Failed to select image. Please try again.');
-        }
     };
 
     const handleSave = () => {
@@ -177,59 +146,17 @@ const ProjectForm = ({
                 {/* Improved Image Section */}
                 <View style={styles.formGroup}>
                     <Text style={styles.label}>Project Image</Text>
-
-                    <View style={styles.imageSection}>
-                        {imageUrl ? (
-                            <View style={styles.imagePreviewContainer}>
-                                <Image
-                                    source={{ uri: imageUrl }}
-                                    style={styles.imagePreview}
-                                    resizeMode="cover"
-                                />
-                                <View style={styles.imageActions}>
-                                    <TouchableOpacity
-                                        style={styles.imageActionButton}
-                                        onPress={() => setImageUrl('')}
-                                    >
-                                        <Ionicons name="close-circle" size={22} color="#fff" />
-                                    </TouchableOpacity>
-                                </View>
-                                <TouchableOpacity
-                                    style={styles.changeImageButton}
-                                    onPress={pickImage}
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons name="camera-outline" size={20} color="#fff" />
-                                </TouchableOpacity>
-                            </View>
-                        ) : (
-                            <View style={styles.imageInputContainer}>
-                                <View style={styles.inputWithIcon}>
-                                    <Ionicons name="link-outline" size={18} color="rgba(0,0,0,0.4)" style={styles.inputIcon} />
-                                    <TextInputComponent
-                                        style={styles.urlInput}
-                                        placeholder="Paste image URL"
-                                        value={imageUrl}
-                                        onChangeText={setImageUrl}
-                                        autoCapitalize="none"
-                                    />
-                                </View>
-                                <View style={styles.divider}>
-                                    <View style={styles.dividerLine} />
-                                    <Text style={styles.dividerText}>or</Text>
-                                    <View style={styles.dividerLine} />
-                                </View>
-                                <TouchableOpacity
-                                    style={styles.uploadButton}
-                                    onPress={pickImage}
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons name="image-outline" size={18} color="#fff" />
-                                    <Text style={styles.uploadText}>Choose from gallery</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    </View>
+                    <ImageHandler
+                        imageUri={imageUrl}
+                        onImageSelected={(uri) => setImageUrl(uri)}
+                        onImageRemoved={() => setImageUrl('')}
+                        square={true}
+                        quality={0.8}
+                        upload={true}
+                        maxSize={1024}
+                        placeholderText="Choose project image"
+                        style={styles.imageHandler}
+                    />
                 </View>
 
                 <View style={styles.formGroup}>
@@ -328,110 +255,8 @@ const styles = StyleSheet.create({
         minHeight: 120,
         textAlignVertical: 'top',
     },
-    imageSection: {
-        borderRadius: 12,
-        overflow: 'hidden',
-        marginBottom: 8,
-    },
-    imageInputContainer: {
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
-        borderRadius: 12,
-        padding: 16,
-        backgroundColor: 'rgba(0,0,0,0.02)',
-    },
-    inputWithIcon: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
-        paddingHorizontal: 12,
-    },
-    inputIcon: {
-        marginRight: 8,
-    },
-    urlInput: {
-        flex: 1,
-        padding: 10,
-        fontSize: 15,
-        color: '#000',
-    },
-    divider: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 16,
-    },
-    dividerLine: {
-        flex: 1,
-        height: 1,
-        backgroundColor: 'rgba(0,0,0,0.1)',
-    },
-    dividerText: {
-        marginHorizontal: 10,
-        color: 'rgba(0,0,0,0.4)',
-        fontSize: 12,
-        textTransform: 'uppercase',
-        fontWeight: '600',
-    },
-    uploadButton: {
-        backgroundColor: '#000',
-        borderRadius: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    uploadText: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: '500',
-        marginLeft: 8,
-    },
-    imagePreviewContainer: {
-        width: '100%',
-        height: 180,
-        position: 'relative',
-        borderRadius: 12,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
-    },
-    imagePreview: {
-        width: '100%',
-        height: '100%',
-    },
-    imageActions: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        flexDirection: 'row',
-    },
-    imageActionButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    changeImageButton: {
-        position: 'absolute',
-        bottom: 12,
-        right: 12,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 5,
+    imageHandler: {
+        marginTop: 5,
     },
     tagInputContainer: {
         flexDirection: 'row',

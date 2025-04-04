@@ -18,40 +18,67 @@ import * as Haptics from 'expo-haptics';
 import ProductForm from './ProductForm';
 import ProductCard from './ProductCard';
 import colors from '../../../../utils/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
 
-// Sample test products
-const TEST_PRODUCTS = [
-  {
-    id: 'product-1',
-    key: 'product-1',
-    title: 'Premium T-Shirt',
-    price: '29.99',
-    imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
-    featured: true
-  },
-  {
-    id: 'product-2',
-    key: 'product-2',
-    title: 'Wireless Headphones',
-    price: '89.99',
-    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
-    featured: false
-  }
-];
-
 export const EditorSheet = ({ data = {}, onSave, onClose }) => {
   // State
-  const [products, setProducts] = useState(TEST_PRODUCTS);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [displayStyle, setDisplayStyle] = useState('grid'); // 'grid', 'horizontal', or 'list'
   const { openBottomSheet, closeBottomSheet } = useBottomSheet();
+  const initialDataRef = useRef(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const insets = useSafeAreaInsets();
+  
+  // Use refs to prevent infinite loops with changing data
+  const dataRef = useRef(data);
 
   // Refs for the FlatLists to completely unmount and remount them when switching views
   const horizontalListKey = useRef(`horizontal-${Date.now()}`);
   const verticalListKey = useRef(`vertical-${Date.now()}`);
+
+  // Initialize products from data passed to the component - run only once
+  useEffect(() => {
+    const currentData = dataRef.current;
+    if (currentData) {
+      // Extract products from items array and ensure they have required properties
+      const loadedProducts = (currentData.items || [])
+        .filter(item => item && (item.type === 'product' || !item.type))
+        .map(product => ({
+          ...product,
+          key: product.id.toString(),
+          type: 'product' // Ensure type is set
+        }));
+
+      // Only use test products if we have no products
+      setProducts(loadedProducts);
+
+      // Set display style from settings
+      if (currentData.settings?.displayStyle) {
+        setDisplayStyle(currentData.settings.displayStyle);
+      }
+
+      // Store initial data for comparison
+      initialDataRef.current = JSON.stringify({
+        items: loadedProducts,
+        settings: currentData.settings || { displayStyle }
+      });
+    }
+  }, []); // Empty dependency array = only run once on mount
+
+  // Track changes to determine if user has unsaved work
+  useEffect(() => {
+    if (initialDataRef.current) {
+      const currentData = JSON.stringify({
+        items: products,
+        settings: { displayStyle }
+      });
+      setHasUnsavedChanges(currentData !== initialDataRef.current);
+    }
+  }, [products, displayStyle]);
 
   // Reset list keys when switching between views to force complete remount
   useEffect(() => {
@@ -65,28 +92,43 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
   // Save changes - optimized to avoid unnecessary work
   const saveChanges = useCallback(() => {
     setLoading(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Create a new array only if needed
-    const nonProductItems = (data.items || []).filter(item => item && item.type !== 'product');
-    const updatedItems = [...nonProductItems, ...products];
+    // Ensure all products have the correct type
+    const productsWithType = products.map(product => ({
+      ...product,
+      type: 'product'
+    }));
 
-    onSave({
-      ...data,
-      items: updatedItems,
+    const currentData = dataRef.current;
+
+    // Preserve non-product items
+    const nonProductItems = (currentData.items || []).filter(item => item && item.type !== 'product');
+
+    // Create the updated content object that matches the expected format
+    const updatedContent = {
+      items: [...nonProductItems, ...productsWithType],
       settings: {
-        ...data.settings,
+        ...(currentData.settings || {}),
         displayStyle
       }
-    });
+    };
+
+    // Log what we're saving for debugging
+    console.log('Saving product data:', updatedContent);
+
+    // Call the onSave function with the updated content
+    onSave(updatedContent);
 
     // Use requestAnimationFrame for smoother UI
     requestAnimationFrame(() => {
       setTimeout(() => {
         setLoading(false);
+        setHasUnsavedChanges(false);
         if (onClose) onClose();
       }, 300); // Reduced timeout for better responsiveness
     });
-  }, [data, products, displayStyle, onSave, onClose]);
+  }, [products, displayStyle, onSave, onClose]);
 
   // Add product - optimized
   const handleAddProduct = useCallback(() => {
@@ -97,7 +139,8 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       title: '',
       price: '',
       imageUrl: '',
-      description: ''
+      description: '',
+      type: 'product'
     };
 
     const sheetId = openBottomSheet(
@@ -106,7 +149,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
         isNew={true}
         onSave={(productData) => {
           // Use functional update to avoid stale closures
-          setProducts(prev => [...prev, { ...newProduct, ...productData }]);
+          setProducts(prev => [...prev, { ...newProduct, ...productData, type: 'product' }]);
           closeBottomSheet(sheetId);
 
           // Provide haptic feedback
@@ -135,7 +178,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
           setProducts(prev =>
             prev.map(item =>
               item.id === product.id
-                ? { ...item, ...productData }
+                ? { ...item, ...productData, type: 'product' }
                 : item
             )
           );
@@ -228,13 +271,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
         ]}
         onPress={() => setDisplayStyle('grid')}
       >
-        <View>
-          <Ionicons
-            name="grid"
-            size={20}
-            color={displayStyle === 'grid' ? '#fff' : '#666'}
-          />
-        </View>
+        <Image source={require('../../../../assets/icons/home/grid interface-125-1658433281.png')} style={[styles.viewToggleImage, displayStyle === 'grid' && { tintColor: '#fff' }]} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -245,11 +282,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
         onPress={() => setDisplayStyle('horizontal')}
       >
         <View>
-          <Ionicons
-            name="reorder-horizontal"
-            size={20}
-            color={displayStyle === 'horizontal' ? '#fff' : '#666'}
-          />
+          <Image source={require('../../../../assets/icons/home/multitasking-128-1658433281.png')} style={[styles.viewToggleImage, displayStyle === 'horizontal' && { tintColor: '#fff' }]} />
         </View>
       </TouchableOpacity>
 
@@ -261,11 +294,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
         onPress={() => setDisplayStyle('list')}
       >
         <View>
-          <Ionicons
-            name="list"
-            size={20}
-            color={displayStyle === 'list' ? '#fff' : '#666'}
-          />
+          <Image source={require('../../../../assets/icons/home/multitasking-127-1658433281.png')} style={[styles.viewToggleImage, displayStyle === 'list' && { tintColor: '#fff' }]} />
         </View>
       </TouchableOpacity>
     </View>
@@ -278,9 +307,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
         style={styles.headerButton}
         onPress={onClose}
       >
-        <View>
-          <Ionicons name="close" size={24} color="#333" />
-        </View>
+        <Image source={require('../../../../assets/icons/home/chevron left-8-1696832126.png')} style={[styles.closeButton]} />
       </TouchableOpacity>
 
       <Text style={styles.headerTitle}>Products</Text>
@@ -311,7 +338,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
       onPress={handleAddProduct}
     >
       <View style={styles.addButtonContent}>
-        <Ionicons name="add-circle" size={24} color="#fff" />
+        <Image source={require('../../../../assets/icons/home/plus 2-10-1662493809.png')} style={styles.addButtonImage} />
         <Text style={styles.addButtonText}>Add Product</Text>
       </View>
     </TouchableOpacity>
@@ -379,6 +406,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
             setProducts(data);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
+          onDragBegin={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
           showsHorizontalScrollIndicator={false}
           // Performance optimizations
           windowSize={5}
@@ -402,6 +430,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
             setProducts(data);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
+          onDragBegin={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
           showsVerticalScrollIndicator={false}
           // Performance optimizations
           windowSize={5}
@@ -416,8 +445,8 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
 
   // Main view - optimized
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+    <View style={styles.safeArea}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         {Header}
         {Subheader}
 
@@ -432,7 +461,7 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -444,6 +473,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  closeButton: {
+    width: 24,
+    height: 24,
+    tintColor: '#000',
+    marginLeft: -6,
   },
   improvedHeader: {
     flexDirection: 'row',
@@ -480,15 +515,16 @@ const styles = StyleSheet.create({
   viewToggleContainer: {
     flexDirection: 'row',
     backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 4,
+    borderRadius: 25,
+    padding: 6,
+    gap: 6,
   },
   viewToggleButton: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 20,
   },
   activeViewToggle: {
     backgroundColor: colors.primary || '#000',
@@ -498,12 +534,13 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   grid: {
-    // padding: 16,
+    flex: 1
   },
   gridItemContainer: {
     width: '100%',
     height: '100%',
-    paddingRight: 16,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
   },
   horizontalList: {
     paddingHorizontal: 16,
@@ -515,20 +552,25 @@ const styles = StyleSheet.create({
   },
   addButton: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 25,
     left: 16,
     right: 16,
     backgroundColor: colors.primary || '#000',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 25,
     alignItems: 'center',
+  },
+  addButtonImage: {
+    width: 24,
+    height: 24,
+    tintColor: '#fff',
   },
   addButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   addButtonText: {
-    color:'#fff',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -550,6 +592,11 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginBottom: 24,
+  },
+  viewToggleImage: {
+    width: 20,  
+    height: 20,
+    tintColor: '#666',
   },
   emptyAddButton: {
     backgroundColor: colors.primary || '#000',

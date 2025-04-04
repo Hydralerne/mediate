@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const Header = ({ websiteName, websiteDomain, onShare, onSettings }) => {
+const Header = ({ websiteName, websiteDomain, onShare, onSettings, onSave, hasUnsavedChanges }) => {
 
     const insets = useSafeAreaInsets();
 
@@ -25,7 +25,7 @@ const Header = ({ websiteName, websiteDomain, onShare, onSettings }) => {
                 <View style={styles.actionsContainer}>
                     <TouchableOpacity
                         style={styles.actionButton}
-                        onPress={onShare}
+                        onPress={hasUnsavedChanges}
                     >
                         <Text style={styles.actionButtonText}>Share</Text>
                     </TouchableOpacity>
@@ -64,6 +64,9 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         width: '100%',
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        overflow: 'hidden',
     },
     headerBackgroundImage: {
         width: '100%',

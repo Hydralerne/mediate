@@ -1,4 +1,4 @@
-import React, { useMemo, memo, useCallback } from 'react';
+import React, { useMemo, memo, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 // Import all section editors
@@ -19,7 +19,7 @@ const ErrorMessage = memo(({ message }) => (
 ));
 
 const EditorRouter = ({ route, navigation }) => {
-  const { section } = route.params || {};
+  const { section, websiteId } = route.params || {};
   const { updateSection } = useDashboard();
   
   // Early return with memoized error component if no section
@@ -29,19 +29,44 @@ const EditorRouter = ({ route, navigation }) => {
 
   // Memoize the save handler to prevent recreation on re-renders
   const handleSave = useCallback(async (contentData) => {
-    // Create updated section object
-    const updatedSection = {
-      ...section,
-      content: contentData
-    };
-    
-    // Save via context
-    await updateSection(updatedSection);
-    
-    // Navigate back regardless of success
-    // (Error handling is managed by the context)
-    navigation.goBack();
-  }, [section, updateSection, navigation]);
+    try {
+      console.log('EditorRouter saving:', section.type, contentData);
+
+      // Build the updated section correctly based on the content data structure
+      let updatedSection;
+      
+      // Handle different section content structures without losing data
+      if (contentData && typeof contentData === 'object') {
+        // For sections like portfolio and products that pass {items, settings}
+        if (contentData.items !== undefined) {
+          updatedSection = {
+            ...section,
+            content: {
+              ...(section.content || {}),
+              ...contentData
+            }
+          };
+        } else {
+          // For simple content structures
+          updatedSection = {
+            ...section,
+            content: contentData
+          };
+        }
+      } else {
+        // Fallback for primitive content data
+        updatedSection = {
+          ...section,
+          content: contentData
+        };
+      }
+      
+      // Save via context
+      await updateSection(updatedSection);
+    } catch (error) {
+      console.error('Failed to save section:', error);
+    }
+  }, [section, updateSection]);
   
   // Memoize the close handler
   const handleClose = useCallback(() => {

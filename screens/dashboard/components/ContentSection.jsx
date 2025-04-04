@@ -18,7 +18,8 @@ import DraggableFlatList, {
 // Import from our middleware
 import {
     getSectionIcon,
-    getSectionEditor
+    getSectionEditor,
+    getSectionMetadata
 } from '../../../components/sections/index';
 
 // Import the SectionEditorSheet component
@@ -68,12 +69,20 @@ const ContentSectionComponent = ({
             // Check if this section type should use the full-screen editor
             // Now including both products and portfolio sections
             if (section.type == 'portfolio' || section.type == 'products') {
+                // Get websiteId from navigation state if available
+                const websiteId = navigation.getState ?
+                    navigation.getState().routes.find(r => r.name === 'WebsiteDashboard')?.params?.websiteId :
+                    undefined;
+
                 navigation.navigate('EditorSheet', {
-                    section: section
+                    section: section,
+                    websiteId
                 });
                 return;
             }
-            
+
+            console.log(section,'assssssss');
+
             // Other section types use the bottom sheet editor
             openBottomSheet(
                 <SectionEditorSheet
@@ -136,9 +145,7 @@ const ContentSectionComponent = ({
                             <Text style={[styles.title, !section.active && styles.inactiveTitle]}>
                                 {section.title}
                             </Text>
-                            {section.description && (
-                                <Text style={styles.description}>{section.description}</Text>
-                            )}
+                            <Text style={styles.description}>{section.description || getSectionMetadata(section.type).description}</Text>
                         </View>
                     </View>
 
