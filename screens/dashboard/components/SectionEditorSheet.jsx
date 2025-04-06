@@ -43,7 +43,7 @@ const SectionEditorSheet = ({
                         onPress={() => {
                             // This will trigger the save action in the EditorComponent
                             if (onSave) {
-                                onSave(section.content);
+                                onSave(section);
                             }
                         }}
                     >
@@ -65,7 +65,7 @@ const SectionEditorSheet = ({
             <View style={styles.editorContainer}>
                 {EditorComponent && (
                     <EditorComponent
-                        data={section.content}
+                        data={section}
                         onSave={onSave}
                     />
                 )}

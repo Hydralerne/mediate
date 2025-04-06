@@ -4,6 +4,7 @@ import { getToken } from '../utils/token';
 import { getWebsiteChanges, clearChangesCache } from '../utils/websiteDataDiff';
 import { saveWebsiteChanges, isSaving } from '../utils/websiteSave';
 import { deepEqual } from '../utils/compareUtils';
+import { extractCurrentWebsiteData, normalizeWebsiteData, createWebsiteDataDownload } from '../utils/websiteDataExport';
 
 // You can replace this with your actual API service
 // import { updateSections, fetchSections } from '../services/api';
@@ -82,7 +83,6 @@ export const DashboardProvider = ({ children }) => {
 
     // The websiteDataDiff utility already uses internal caching
     const changes = getWebsiteChanges(originalData, currentData);
-    
     return changes.hasChanges;
   }, []);
 
@@ -90,6 +90,22 @@ export const DashboardProvider = ({ children }) => {
   const checkIsSaving = useCallback(() => {
     const websiteId = currentWebsiteIdRef.current;
     return websiteId ? isSaving(websiteId) : false;
+  }, []);
+
+  // Export the current website data
+  const exportWebsiteData = useCallback((shouldNormalize = true) => {
+    // Use the ref for immediate access
+    const websiteId = currentWebsiteIdRef.current;
+    if (!websiteId) {
+      console.error('No active website to export');
+      return null;
+    }
+
+    // Extract full website data using the refs for immediate access
+    const websiteData = extractCurrentWebsiteData(websiteDataMapRef, currentWebsiteIdRef);
+    
+    // Return normalized data if requested
+    return shouldNormalize ? normalizeWebsiteData(websiteData) : websiteData;
   }, []);
 
   // Set the active website ID and load its data if needed
@@ -609,7 +625,9 @@ export const DashboardProvider = ({ children }) => {
     getCurrentWebsiteId: () => currentWebsiteIdRef.current,
     refreshWebsite,
     saveChanges,
-    discardChanges
+    discardChanges,
+    // Data export functions
+    exportWebsiteData
   }), [
     sections,
     websiteData,
@@ -628,7 +646,8 @@ export const DashboardProvider = ({ children }) => {
     currentWebsiteId,
     refreshWebsite,
     saveChanges,
-    discardChanges
+    discardChanges,
+    exportWebsiteData
   ]);
 
   return (

@@ -20,7 +20,7 @@ const ProjectForm = ({
 }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [imageUrl, setImageUrl] = useState('');
+    const [imageUrls, setImageUrls] = useState([]);
     const [projectUrl, setProjectUrl] = useState('');
     const [tags, setTags] = useState([]);
     const [newTag, setNewTag] = useState('');
@@ -35,7 +35,9 @@ const ProjectForm = ({
         if (project) {
             setTitle(project.title || '');
             setDescription(project.description || '');
-            setImageUrl(project.imageUrl || '');
+            // Handle both imageUrl and imageUrls for backward compatibility
+            const initialImageUrls = project.imageUrls || (project.imageUrl ? [project.imageUrl] : []);
+            setImageUrls(initialImageUrls);
             setProjectUrl(project.projectUrl || '');
             setTags(project.tags || []);
         }
@@ -45,6 +47,28 @@ const ProjectForm = ({
             setTimeout(() => titleInputRef.current.focus(), 100);
         }
     }, [project]);
+
+    // Custom function to handle image updates directly with imageUrls
+    const handleProjectImageUpdate = (response) => {
+        // If we receive an array (from onImageRemoved)
+        if (Array.isArray(response)) {
+            setImageUrls(response);
+        } 
+        // If we receive a bulk file upload response with multiple files
+        else if (response && response.files) {
+            const newUrls = response.files.map(file => file.url);
+            // Filter out local file URLs
+            const filteredUrls = imageUrls.filter(url => !url.startsWith('file:///'));
+            setImageUrls([...filteredUrls, ...newUrls]);
+        } 
+        // If we receive a single upload response
+        else if (response && response.url) {
+            const newUrl = response.url;
+            // Filter out local file URLs
+            const filteredUrls = imageUrls.filter(url => !url.startsWith('file:///'));
+            setImageUrls([...filteredUrls, newUrl]);
+        }
+    };
 
     const validateForm = () => {
         const newErrors = {};
@@ -99,7 +123,7 @@ const ProjectForm = ({
             key: id, // Add the key property matching the id
             title: title.trim(),
             description: description.trim(),
-            imageUrl: imageUrl.trim(),
+            imageUrls: imageUrls,
             projectUrl: projectUrl.trim(),
             tags,
             type: 'project'
@@ -143,18 +167,21 @@ const ProjectForm = ({
                     />
                 </View>
 
-                {/* Improved Image Section */}
+                {/* Multiple Image Section */}
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Project Image</Text>
+                    <Text style={styles.label}>Project Images</Text>
                     <ImageHandler
-                        imageUri={imageUrl}
-                        onImageSelected={(uri) => setImageUrl(uri)}
-                        onImageRemoved={() => setImageUrl('')}
+                        imageUris={imageUrls}
+                        onImageSelected={(response) => handleProjectImageUpdate(response)}
+                        onImageRemoved={(index, newImages) => handleProjectImageUpdate(newImages)}
+                        onUploadComplete={(response) => handleProjectImageUpdate(response)}
+                        multiple={true}
+                        maxImages={6}
                         square={true}
-                        quality={0.8}
                         upload={true}
+                        quality={0.8}
                         maxSize={1024}
-                        placeholderText="Choose project image"
+                        placeholderText="Choose project images"
                         style={styles.imageHandler}
                     />
                 </View>

@@ -1,20 +1,19 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import { getImage } from '../../../../utils/media/imagesServices';
 
 const { width } = Dimensions.get('window');
 
-// Generate subtle background colors for placeholders
-const getPlaceholderColor = () => {
+// Memoized utility functions (outside component to avoid recreation)
+const getPlaceholderColor = (() => {
   const colors = ['#f2f7ff', '#f7f2ff', '#fff2f2', '#f2fff7', '#f5f5f5'];
-  return colors[Math.floor(Math.random() * colors.length)];
-};
+  return () => colors[Math.floor(Math.random() * colors.length)];
+})();
 
 // Get a color for tag based on tag text
-const getTagColor = (tag) => {
-  if (!tag) return { bg: '#f0f0f0', text: '#666' };
-  
+const getTagColor = (() => {
   const colors = [
     { bg: '#f0f7ff', text: '#3b82f6' }, // blue
     { bg: '#f0fff5', text: '#10b981' }, // green
@@ -23,21 +22,66 @@ const getTagColor = (tag) => {
     { bg: '#fef3c7', text: '#d97706' }, // amber
   ];
   
-  // Simple hash function to consistently get the same color for the same tag
-  const hashCode = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return colors[hashCode % colors.length];
-};
+  return (tag) => {
+    if (!tag) return { bg: '#f0f0f0', text: '#666' };
+    // Simple hash function to consistently get the same color for the same tag
+    const hashCode = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hashCode % colors.length];
+  };
+})();
 
-const ProjectCard = ({ 
+// Memoized components to prevent unnecessary re-renders
+const ImageComponent = memo(({ imageUrl, hasValidImage, placeholderColor, placeholderChar, containerStyle, imageStyle, placeholderStyle, textStyle }) => {
+  return (
+    <View style={containerStyle}>
+      {hasValidImage ? (
+        <Image
+          source={{ uri: getImage(imageUrl, 'medium') }}
+          style={imageStyle}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[placeholderStyle, { backgroundColor: placeholderColor }]}>
+          <Text style={textStyle}>{placeholderChar}</Text>
+        </View>
+      )}
+    </View>
+  );
+});
+
+const TagsComponent = memo(({ tags, containerStyle, tagStyle, textStyle, limit }) => {
+  if (!tags || tags.length === 0) return null;
+  
+  return (
+    <View style={containerStyle}>
+      {tags.slice(0, limit).map((tag, index) => {
+        const tagColor = getTagColor(tag);
+        return (
+          <View key={index} style={[styles.tag, tagStyle, { backgroundColor: tagColor.bg }]}>
+            <Text style={[styles.tagText, textStyle, { color: tagColor.text }]}>{tag}</Text>
+          </View>
+        );
+      })}
+      {tags.length > limit && (
+        <Text style={styles.moreTagsText}>+{tags.length - limit}</Text>
+      )}
+    </View>
+  );
+});
+
+// Main component
+const ProjectCard = memo(({ 
   project, 
   onEdit, 
   onDelete,
   isDragging = false,
   displayStyle = 'grid' 
 }) => {
-  // Verify image exists
-  const hasValidImage = Boolean(project?.imageUrl);
-  const placeholderColor = getPlaceholderColor();
+  // Extract common properties - computed only once per render
+  const imageUrl = project?.imageUrls?.[0] || project?.imageUrl;
+  const hasValidImage = Boolean(imageUrl);
+  const placeholderColor = useMemo(() => getPlaceholderColor(), []);
+  const placeholderChar = project.title ? project.title.charAt(0).toUpperCase() : "P";
   
   const handleEdit = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -48,242 +92,199 @@ const ProjectCard = ({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onDelete(project.id);
   };
-  
-  // Grid view (2 columns)
-  if (displayStyle === 'grid') {
-    return (
-      <View style={[styles.gridCard, isDragging && styles.dragging]}>
-        {/* Image on top */}
-        <View style={styles.gridImageContainer}>
-          {hasValidImage ? (
-            <Image
-              source={{ uri: project.imageUrl }}
-              style={styles.gridImage}
-              resizeMode="cover"
+
+  // Switch-case for different display styles
+  switch (displayStyle) {
+    case 'grid':
+      return (
+        <View style={[styles.gridCard, isDragging && styles.dragging]}>
+          <View style={styles.gridImageContainer}>
+            <ImageComponent 
+              imageUrl={imageUrl}
+              hasValidImage={hasValidImage}
+              placeholderColor={placeholderColor}
+              placeholderChar={placeholderChar}
+              containerStyle={styles.gridImageContainer}
+              imageStyle={styles.gridImage}
+              placeholderStyle={styles.gridImagePlaceholder}
+              textStyle={styles.placeholderText}
             />
-          ) : (
-            <View style={[styles.gridImagePlaceholder, { backgroundColor: placeholderColor }]}>
-              <Text style={styles.placeholderText}>
-                {project.title ? project.title.charAt(0).toUpperCase() : "P"}
-              </Text>
+            
+            {/* Edit overlay button */}
+            <TouchableOpacity
+              style={styles.gridEditButton}
+              onPress={handleEdit}
+              hitSlop={{ top: 5, right: 5, bottom: 5, left: 5 }}
+            >
+              <Ionicons name="pencil" size={14} color="#fff" />
+            </TouchableOpacity>
+            
+            {/* Drag handle in top-right */}
+            <View style={styles.gridDragHandle}>
+              <Ionicons name="menu" size={16} color="#fff" />
             </View>
-          )}
+          </View>
           
-          {/* Edit overlay button */}
-          <TouchableOpacity
-            style={styles.gridEditButton}
-            onPress={handleEdit}
-            hitSlop={{ top: 5, right: 5, bottom: 5, left: 5 }}
-          >
-            <Ionicons name="pencil" size={14} color="#fff" />
-          </TouchableOpacity>
-          
-          {/* Drag handle in top-right */}
-          <View style={styles.gridDragHandle}>
-            <Ionicons name="menu" size={16} color="#fff" />
+          {/* Content below image */}
+          <View style={styles.gridContent}>
+            <Text style={styles.gridTitle} numberOfLines={1}>
+              {project.title || "Untitled Project"}
+            </Text>
+            
+            {/* Description if available */}
+            {project.description ? (
+              <Text style={styles.gridDescription} numberOfLines={3}>
+                {project.description}
+              </Text>
+            ) : null}
+            
+            {/* Tags */}
+            <TagsComponent
+              tags={project.tags}
+              containerStyle={styles.gridTagsRow}
+              limit={2}
+            />
+            
+            {/* Delete button at bottom */}
+            <TouchableOpacity
+              style={styles.gridDeleteButton}
+              onPress={handleDelete}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            >
+              <Ionicons name="trash-outline" size={14} color="#666" />
+            </TouchableOpacity>
           </View>
         </View>
-        
-        {/* Content below image */}
-        <View style={styles.gridContent}>
-          <Text style={styles.gridTitle} numberOfLines={1}>
-            {project.title || "Untitled Project"}
-          </Text>
-          
-          {/* Description if available */}
-          {project.description ? (
-            <Text style={styles.gridDescription} numberOfLines={3}>
-              {project.description}
-            </Text>
-          ) : null}
-          
-          {/* Tags */}
-          {project.tags && project.tags.length > 0 && (
-            <View style={styles.gridTagsRow}>
-              {project.tags.slice(0, 2).map((tag, index) => {
-                const tagColor = getTagColor(tag);
-                return (
-                  <View key={index} style={[styles.tag, { backgroundColor: tagColor.bg }]}>
-                    <Text style={[styles.tagText, { color: tagColor.text }]}>{tag}</Text>
-                  </View>
-                );
-              })}
-              {project.tags.length > 2 && (
-                <Text style={styles.moreTagsText}>+{project.tags.length - 2}</Text>
-              )}
-            </View>
-          )}
-          
-          {/* Delete button at bottom */}
-          <TouchableOpacity
-            style={styles.gridDeleteButton}
-            onPress={handleDelete}
-            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-          >
-            <Ionicons name="trash-outline" size={14} color="#666" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-  
-  // Horizontal scrolling view
-  if (displayStyle === 'masonry') {
-    return (
-      <View style={[styles.horizontalCard, isDragging && styles.dragging]}>
-        {/* Top image section */}
-        <View style={styles.horizontalImageContainer}>
-          {hasValidImage ? (
-            <Image
-              source={{ uri: project.imageUrl }}
-              style={styles.horizontalImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.horizontalImagePlaceholder, { backgroundColor: placeholderColor }]}>
-              <Text style={styles.horizontalPlaceholderText}>
-                {project.title ? project.title.charAt(0).toUpperCase() : "P"}
-              </Text>
-            </View>
-          )}
+      );
+      
+    case 'masonry':
+      return (
+        <View style={[styles.horizontalCard, isDragging && styles.dragging]}>
+          {/* Top image section */}
+          <ImageComponent 
+            imageUrl={imageUrl}
+            hasValidImage={hasValidImage}
+            placeholderColor={placeholderColor}
+            placeholderChar={placeholderChar}
+            containerStyle={styles.horizontalImageContainer}
+            imageStyle={styles.horizontalImage}
+            placeholderStyle={styles.horizontalImagePlaceholder}
+            textStyle={styles.horizontalPlaceholderText}
+          />
           
           {/* Drag handle in top-right of image */}
           <View style={styles.horizontalDragHandle}>
             <Ionicons name="menu" size={16} color="#fff" />
           </View>
+          
+          {/* Content section */}
+          <View style={styles.horizontalContent}>
+            <View style={styles.horizontalHeader}>
+              <Text style={styles.horizontalTitle} numberOfLines={1}>
+                {project.title || "Untitled Project"}
+              </Text>
+              
+              {/* Action buttons in top-right */}
+              <View style={styles.horizontalActions}>
+                <TouchableOpacity
+                  style={styles.smallActionButton}
+                  onPress={handleEdit}
+                  hitSlop={{ top: 5, right: 5, bottom: 5, left: 5 }}
+                >
+                  <Ionicons name="pencil-outline" size={16} color="#666" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.smallActionButton}
+                  onPress={handleDelete}
+                  hitSlop={{ top: 5, right: 5, bottom: 5, left: 5 }}
+                >
+                  <Ionicons name="trash-outline" size={16} color="#666" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            {/* Description if available */}
+            {project.description ? (
+              <Text style={styles.horizontalDescription} numberOfLines={4}>
+                {project.description}
+              </Text>
+            ) : null}
+            
+            {/* Tags */}
+            <TagsComponent
+              tags={project.tags}
+              containerStyle={styles.horizontalTagsRow}
+              limit={3}
+            />
+          </View>
         </View>
-        
-        {/* Content section */}
-        <View style={styles.horizontalContent}>
-          <View style={styles.horizontalHeader}>
-            <Text style={styles.horizontalTitle} numberOfLines={1}>
+      );
+      
+    default: // List view
+      return (
+        <View style={[styles.listCard, isDragging && styles.dragging]}>
+          {/* Left side - Image or placeholder */}
+          <ImageComponent 
+            imageUrl={imageUrl}
+            hasValidImage={hasValidImage}
+            placeholderColor={placeholderColor}
+            placeholderChar={placeholderChar}
+            containerStyle={styles.listImageContainer}
+            imageStyle={styles.listImage}
+            placeholderStyle={styles.listImagePlaceholder}
+            textStyle={styles.listPlaceholderText}
+          />
+          
+          {/* Middle - Content */}
+          <View style={styles.listContent}>
+            <Text style={styles.listTitle} numberOfLines={1}>
               {project.title || "Untitled Project"}
             </Text>
             
-            {/* Action buttons in top-right */}
-            <View style={styles.horizontalActions}>
-              <TouchableOpacity
-                style={styles.smallActionButton}
-                onPress={handleEdit}
-                hitSlop={{ top: 5, right: 5, bottom: 5, left: 5 }}
-              >
-                <Ionicons name="pencil-outline" size={16} color="#666" />
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.smallActionButton}
-                onPress={handleDelete}
-                hitSlop={{ top: 5, right: 5, bottom: 5, left: 5 }}
-              >
-                <Ionicons name="trash-outline" size={16} color="#666" />
-              </TouchableOpacity>
-            </View>
+            {project.description ? (
+              <Text style={styles.listDescription} numberOfLines={3}>
+                {project.description}
+              </Text>
+            ) : null}
+            
+            {/* Tags */}
+            <TagsComponent
+              tags={project.tags}
+              containerStyle={styles.listTagsRow}
+              tagStyle={styles.listTag}
+              textStyle={styles.listTagText}
+              limit={2}
+            />
           </View>
           
-          {/* Description if available */}
-          {project.description ? (
-            <Text style={styles.horizontalDescription} numberOfLines={4}>
-              {project.description}
-            </Text>
-          ) : null}
-          
-          {/* Tags */}
-          {project.tags && project.tags.length > 0 && (
-            <View style={styles.horizontalTagsRow}>
-              {project.tags.slice(0, 3).map((tag, index) => {
-                const tagColor = getTagColor(tag);
-                return (
-                  <View key={index} style={[styles.tag, { backgroundColor: tagColor.bg }]}>
-                    <Text style={[styles.tagText, { color: tagColor.text }]}>{tag}</Text>
-                  </View>
-                );
-              })}
-              {project.tags.length > 3 && (
-                <Text style={styles.moreTagsText}>+{project.tags.length - 3}</Text>
-              )}
+          {/* Right side - Actions */}
+          <View style={styles.listActions}>
+            <TouchableOpacity
+              style={styles.listActionButton}
+              onPress={handleEdit}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            >
+              <Ionicons name="pencil-outline" size={16} color="#666" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.listActionButton}
+              onPress={handleDelete}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            >
+              <Ionicons name="trash-outline" size={16} color="#666" />
+            </TouchableOpacity>
+            
+            {/* Drag handle on right edge */}
+            <View style={styles.listDragHandle}>
+              <Ionicons name="menu" size={16} color="#999" />
             </View>
-          )}
+          </View>
         </View>
-      </View>
-    );
+      );
   }
-  
-  // List view (vertical scrolling)
-  return (
-    <View style={[styles.listCard, isDragging && styles.dragging]}>
-      {/* Left side - Image or placeholder */}
-      <View style={styles.listImageContainer}>
-        {hasValidImage ? (
-          <Image
-            source={{ uri: project.imageUrl }}
-            style={styles.listImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={[styles.listImagePlaceholder, { backgroundColor: placeholderColor }]}>
-            <Text style={styles.listPlaceholderText}>
-              {project.title ? project.title.charAt(0).toUpperCase() : "P"}
-            </Text>
-          </View>
-        )}
-      </View>
-      
-      {/* Middle - Content */}
-      <View style={styles.listContent}>
-        <Text style={styles.listTitle} numberOfLines={1}>
-          {project.title || "Untitled Project"}
-        </Text>
-        
-        {project.description ? (
-          <Text style={styles.listDescription} numberOfLines={3}>
-            {project.description}
-          </Text>
-        ) : null}
-        
-        {/* Tags */}
-        {project.tags && project.tags.length > 0 && (
-          <View style={styles.listTagsRow}>
-            {project.tags.slice(0, 2).map((tag, index) => {
-              const tagColor = getTagColor(tag);
-              return (
-                <View key={index} style={[styles.listTag, { backgroundColor: tagColor.bg }]}>
-                  <Text style={[styles.listTagText, { color: tagColor.text }]}>{tag}</Text>
-                </View>
-              );
-            })}
-            {project.tags.length > 2 && (
-              <Text style={styles.listMoreTags}>+{project.tags.length - 2}</Text>
-            )}
-          </View>
-        )}
-      </View>
-      
-      {/* Right side - Actions */}
-      <View style={styles.listActions}>
-        <TouchableOpacity
-          style={styles.listActionButton}
-          onPress={handleEdit}
-          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-        >
-          <Ionicons name="pencil-outline" size={16} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.listActionButton}
-          onPress={handleDelete}
-          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-        >
-          <Ionicons name="trash-outline" size={16} color="#666" />
-        </TouchableOpacity>
-        
-        {/* Drag handle on right edge */}
-        <View style={styles.listDragHandle}>
-          <Ionicons name="menu" size={16} color="#999" />
-        </View>
-      </View>
-    </View>
-  );
-};
+});
 
 const styles = StyleSheet.create({
   // Common styles
@@ -577,4 +578,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default memo(ProjectCard); 
+export default ProjectCard; 

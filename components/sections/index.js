@@ -1,9 +1,9 @@
 /**
  * Content section middleware main export
  */
-import { 
-  SECTION_TYPES, 
-  SECTION_METADATA, 
+import {
+  SECTION_TYPES,
+  SECTION_METADATA,
   getSectionMetadata,
   getAllSectionTypes,
   getAllSectionMetadata,
@@ -51,12 +51,13 @@ export function getDefaultContent(type) {
 
 // Create a new section with default content
 export function createSection(type) {
-  const section = createDefaultSection(type);
-  if (!section) return null;
-  
-  section.icon = getSectionIcon(type);
-  section.content = getDefaultContent(type);
-  
+  const defaultSection = createDefaultSection(type);
+  if (!defaultSection) return null;
+
+  const content = getDefaultContent(type);
+  const icon = getSectionIcon(type);
+  const section = { ...defaultSection, ...content, icon };
+
   return section;
 }
 

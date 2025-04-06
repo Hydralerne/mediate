@@ -18,7 +18,7 @@ import ImageHandler from '../../../global/ImageHandler';
 import { Ionicons } from '@expo/vector-icons';
 import { useBottomSheet } from '../../../../contexts/BottomSheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { handleImagesUpdate } from '../../../../utils/media/imagesServices';
 // Define available currencies
 const currencies = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
@@ -291,15 +291,6 @@ const ProductForm = ({ product = {}, isNew = false, onSave, onClose }) => {
     if (onClose) onClose();
   };
 
-  // Handle all images updates from the ImageHandler
-  const handleImagesUpdate = (imageUris) => {
-    setFormData(prev => ({
-      ...prev,
-      imageUrls: imageUris,
-      imageUrl: imageUris.length > 0 ? imageUris[0] : '' // Update the legacy single imageUrl as well
-    }));
-  };
-
   // Open currency selector bottom sheet
   const openCurrencySelector = () => {
     const sheetId = openBottomSheet(
@@ -344,12 +335,10 @@ const ProductForm = ({ product = {}, isNew = false, onSave, onClose }) => {
             
             <ImageHandler
               imageUris={formData.imageUrls}
-              onImageSelected={handleImagesUpdate}
-              onImageRemoved={(index, newImages) => handleImagesUpdate(newImages)}
+              onImageSelected={(response) => handleImagesUpdate(response, setFormData)}
+              onImageRemoved={(index, newImages) => handleImagesUpdate(newImages, setFormData)}
               upload={true}
-              onUploadComplete={(response) => {
-                console.log('Upload complete:', response);
-              }}
+              onUploadComplete={(response) => handleImagesUpdate(response, setFormData)}
               multiple={true}
               maxImages={6}
               square={true}

@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../../../utils/colors';
+import { getImage } from '../../../../utils/media/imagesServices';
 
 const ProductCard = ({
   item,
@@ -11,6 +12,8 @@ const ProductCard = ({
   displayStyle = 'grid'
 }) => {
   if (!item) return null;
+
+  const image = getImage(item?.imageUrls?.[0] || item?.imageUrl, 'medium');
 
   const isGrid = displayStyle === 'grid';
   const isHorizontal = displayStyle === 'horizontal';
@@ -31,9 +34,9 @@ const ProductCard = ({
         styles.imageContainer,
         isList && styles.listImageContainer
       ]}>
-        {item.imageUrl ? (
+        {image ? (
           <Image
-            source={{ uri: item.imageUrl }}
+            source={{ uri: image }}
             style={[styles.productImage, isList && { borderRadius: 12, overflow: 'hidden' }]}
             resizeMode="cover"
           />

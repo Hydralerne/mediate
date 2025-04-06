@@ -1,221 +1,166 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // HeroPreview component for one-page minisite header visualization
 const HeroPreview = memo(({ headerData }) => {
   const { 
-    title, 
-    logo, 
-    tagline, 
-    displayMode = 'centered',
-    heroImage, 
+    heroLayout = 'fullWidth',
     backgroundColor = '#212529',
     textColor = '#FFFFFF',
-    useLogo = false,
-    tintLogo = false
+    displayMode = 'centered'
   } = headerData || {};
 
-  // Determine the content styles based on display mode
-  const getContentStyle = () => {
-    switch (displayMode) {
-      case 'left':
-        return {
-          alignItems: 'flex-start',
-          paddingHorizontal: 24
-        };
-      case 'overlay':
-        return {
-          position: 'absolute',
-          bottom: 60,
-          left: 0,
-          right: 0,
-          padding: 20
-        };
-      case 'centered':
+  // Render wireframe hero element based on selected layout
+  const renderHeroWireframe = () => {
+    switch (heroLayout) {
+      case 'circleLeft':
+        return (
+          <View style={styles.wireframeContainer}>
+            <View style={styles.circleHeroWireframe}>
+              <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.3)" />
+            </View>
+            <View style={[styles.wireframeContentArea, styles.leftContent]}>
+              <View style={[styles.wireframeLine, { width: '70%' }]} />
+              <View style={[styles.wireframeLine, { width: '50%' }]} />
+            </View>
+          </View>
+        );
+      case 'squareLeft':
+        return (
+          <View style={styles.wireframeContainer}>
+            <View style={styles.squareHeroWireframe}>
+              <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.3)" />
+            </View>
+            <View style={[styles.wireframeContentArea, styles.leftContent]}>
+              <View style={[styles.wireframeLine, { width: '70%' }]} />
+              <View style={[styles.wireframeLine, { width: '50%' }]} />
+            </View>
+          </View>
+        );
+      case 'fullWidth':
       default:
-        return {
-          alignItems: 'center',
-          paddingHorizontal: 24
-        };
+        return (
+          <View style={styles.wireframeContainer}>
+            <View style={styles.fullWidthHeroWireframe}>
+              <View style={styles.fullWidthIconContainer}>
+                <Ionicons name="image-outline" size={32} color="rgba(255,255,255,0.3)" />
+              </View>
+              <LinearGradient
+                colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.3)', backgroundColor]}
+                style={styles.wireframeGradient}
+                start={{ x: 0, y: 0.4 }}
+                end={{ x: 0, y: 1 }}
+              />
+            </View>
+            <View style={[styles.wireframeContentArea, styles.fullWidthContent]}>
+              <View style={[styles.wireframeLine, { width: '70%' }]} />
+              <View style={[styles.wireframeLine, { width: '50%' }]} />
+            </View>
+          </View>
+        );
     }
   };
-
-  // Get text color based on display mode
-  const getTextColor = () => {
-    if (displayMode === 'overlay') {
-      return '#FFFFFF';
-    }
-    return textColor;
-  };
-
-  // Render content (logo or title+tagline)
-  const renderContent = () => (
-    <View style={[styles.contentContainer, getContentStyle()]}>
-      {useLogo && logo ? (
-        <View style={styles.logoContainer}>
-          <Image 
-            source={{ uri: logo }} 
-            style={[
-              styles.logoImage,
-              tintLogo && { tintColor: getTextColor() }
-            ]}
-            resizeMode="contain"
-          />
-          {tagline && (
-            <Text 
-              style={[
-                styles.tagline,
-                { color: getTextColor() },
-                displayMode === 'left' && styles.leftAlignedTagline
-              ]}
-              numberOfLines={2}
-            >
-              {tagline}
-            </Text>
-          )}
-        </View>
-      ) : (
-        <>
-          <Text 
-            style={[
-              styles.title, 
-              { color: getTextColor() },
-              displayMode === 'left' && styles.leftAlignedTitle
-            ]}
-            numberOfLines={2}
-          >
-            {title || 'Your Brand'}
-          </Text>
-          
-          {tagline && (
-            <Text 
-              style={[
-                styles.tagline,
-                { color: getTextColor() },
-                displayMode === 'left' && styles.leftAlignedTagline
-              ]}
-              numberOfLines={2}
-            >
-              {tagline}
-            </Text>
-          )}
-        </>
-      )}
-    </View>
-  );
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <View style={styles.previewOverlay}>
-        <Text style={styles.previewText}>PREVIEW ONLY - NOT FINAL APPEARANCE</Text>
+        <Text style={styles.previewText}>PREVIEW</Text>
       </View>
       
-      {heroImage ? (
-        <>
-          <View style={styles.heroImageContainer}>
-            <Image 
-              source={{ uri: heroImage }} 
-              style={styles.heroImage}
-              resizeMode="cover"
-            />
-            <LinearGradient
-              colors={['transparent', backgroundColor]}
-              style={styles.gradient}
-              start={{ x: 0, y: 0.7 }}
-              end={{ x: 0, y: 1 }}
-            />
-          </View>
-          {renderContent()}
-        </>
-      ) : (
-        <>
-          <View style={styles.heroImageContainer} />
-          {renderContent()}
-        </>
-      )}
+      {renderHeroWireframe()}
       
-      <View style={styles.callToAction}>
-        <View style={[styles.cta, { backgroundColor: `${getTextColor()}20` }]}>
-          <Ionicons 
-            name="chevron-down" 
-            size={18} 
-            color={getTextColor()} 
-          />
-        </View>
-      </View>
-      
-      <View style={styles.wireframeIndicator}>
-        <View style={styles.wireframeLine} />
-        <View style={styles.wireframeLine} />
-        <View style={styles.wireframeLine} />
-      </View>
     </View>
   );
 });
 
 const styles = StyleSheet.create({
   container: {
-    height: 300,
+    height: 200,
     width: '100%',
     position: 'relative',
     borderRadius: 12,
     overflow: 'hidden',
     justifyContent: 'flex-start'
   },
-  heroImageContainer: {
-    height: '90%',
+  wireframeContainer: {
     width: '100%',
+    height: '100%',
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullWidthHeroWireframe: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-  },
-  heroImage: {
-    width: '100%',
     height: '100%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  gradient: {
+  fullWidthIconContainer: {
+    position: 'absolute',
+    top: 80,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  circleHeroWireframe: {
+    position: 'absolute',
+    top: 40,
+    left: 30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  squareHeroWireframe: {
+    position: 'absolute',
+    top: 40,
+    left: 30,
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wireframeGradient: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: 80,
+    height: 150,
   },
-  contentContainer: {
-    width: '100%',
+  wireframeContentArea: {
     position: 'absolute',
-    top: '45%',
-    transform: [{ translateY: -25 }]
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  leftAlignedTitle: {
-    textAlign: 'left',
-  },
-  tagline: {
-    fontSize: 16,
-    fontWeight: '400',
-    textAlign: 'center',
-    opacity: 0.8,
-    marginTop: 8,
-  },
-  leftAlignedTagline: {
-    textAlign: 'left',
-  },
-  logoContainer: {
     alignItems: 'center',
-    width: '100%',
-  },
-  logoImage: {
-    width: '60%',
+    justifyContent: 'center',
     height: 60,
-    backgroundColor: 'transparent',
+  },
+  fullWidthContent: {
+    top: '60%',
+    left: 0,
+    right: 0,
+  },
+  leftContent: {
+    top: '25%',
+    left: 150,
+    right: 20,
+    alignItems: 'flex-start'
+  },
+  wireframeLine: {
+    height: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 6,
+    marginVertical: 6,
   },
   callToAction: {
     width: '100%',
@@ -254,7 +199,7 @@ const styles = StyleSheet.create({
     padding: 4,
     alignItems: 'center',
   },
-  wireframeLine: {
+  indicatorLine: {
     width: 30,
     height: 2,
     backgroundColor: 'rgba(255,255,255,0.2)',

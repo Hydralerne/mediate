@@ -65,7 +65,6 @@ const ContentSectionComponent = ({
         const EditorComponent = getSectionEditor(section.type);
 
         if (EditorComponent) {
-            console.log('EditorComponent', section);
             // Check if this section type should use the full-screen editor
             // Now including both products and portfolio sections
             if (section.type == 'portfolio' || section.type == 'products') {
@@ -81,15 +80,13 @@ const ContentSectionComponent = ({
                 return;
             }
 
-            console.log(section,'assssssss');
-
             // Other section types use the bottom sheet editor
             openBottomSheet(
                 <SectionEditorSheet
                     section={section}
                     EditorComponent={EditorComponent}
                     onSave={(data) => {
-                        onEdit({ content: data });
+                        onEdit(data);
                         closeBottomSheet();
                     }}
                     onDelete={() => {
@@ -142,7 +139,7 @@ const ContentSectionComponent = ({
                             <View style={styles.iconPlaceholder} />
                         )}
                         <View style={styles.titleTextContainer}>
-                            <Text style={[styles.title, !section.active && styles.inactiveTitle]}>
+                            <Text style={[styles.title, !section.is_active && styles.inactiveTitle]}>
                                 {section.title}
                             </Text>
                             <Text style={styles.description}>{section.description || getSectionMetadata(section.type).description}</Text>
@@ -151,11 +148,11 @@ const ContentSectionComponent = ({
 
                     <View style={styles.actionsContainer}>
                         <TouchableOpacity
-                            style={[styles.toggleButton, section.active ? styles.activeToggle : styles.inactiveToggle]}
+                            style={[styles.toggleButton, section.is_active ? styles.activeToggle : styles.inactiveToggle]}
                             onPress={handleToggleActive}
                         >
-                            <Text style={[styles.toggleText, section.active ? styles.activeToggleText : styles.inactiveToggleText]}>
-                                {section.active ? 'Active' : 'Hidden'}
+                            <Text style={[styles.toggleText, section.is_active ? styles.activeToggleText : styles.inactiveToggleText]}>
+                                {section.is_active ? 'Active' : 'Hidden'}
                             </Text>
                         </TouchableOpacity>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     StyleSheet,
@@ -11,11 +11,14 @@ import {
     Dimensions
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-
+import { useDashboard } from '../../contexts/DashboardContext';
 const WebsitePreview = ({ route, navigation }) => {
     const { websiteDomain } = route.params;
     const [isLoading, setIsLoading] = useState(true);
     const [deviceType, setDeviceType] = useState('mobile'); // 'mobile', 'tablet', or 'pc'
+
+    const { exportWebsiteData } = useDashboard();
+
 
     // Get device screen dimensions
     const { width: screenWidth } = Dimensions.get('window');
@@ -26,7 +29,7 @@ const WebsitePreview = ({ route, navigation }) => {
     // Define viewport and user-agent settings for different devices
     const viewportSettings = {
         mobile: {
-           
+
         },
         tablet: {
             userAgent: 'Mozilla/5.0 (iPad; CPU OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1',
@@ -55,6 +58,32 @@ const WebsitePreview = ({ route, navigation }) => {
     //         document.head.appendChild(newMeta);
     //     }
     // `: '';
+
+    const webViewRef = useRef(null);
+
+    // Function to inject the website data
+    const injectWebsiteData = () => {
+        if (!webViewRef.current) return;
+        
+        // Get the current website data
+        const websiteData = exportWebsiteData();
+        
+        // Create the injection script
+        const websiteDataString = JSON.stringify(websiteData);
+        // console.log('websiteDataString', websiteDataString);
+        const injectionScript = `
+            updateSiteData(${websiteDataString});
+        `;
+        
+        // Execute the script
+        webViewRef.current.injectJavaScript(injectionScript);
+    };
+
+    // Handle the onLoad event
+    const handleLoadEnd = () => {
+        setIsLoading(false);
+        injectWebsiteData();
+    };
 
     useEffect(() => {
         // Set navigation options dynamically
@@ -105,12 +134,13 @@ const WebsitePreview = ({ route, navigation }) => {
                     getContainerStyle()
                 ]}>
                     <WebView
+                        ref={webViewRef}
                         source={{ uri: previewUrl }}
                         style={styles.webView}
                         userAgent={currentSettings.userAgent}
                         injectedJavaScript={viewportScript}
                         onLoadStart={() => setIsLoading(true)}
-                        onLoadEnd={() => setIsLoading(false)}
+                        onLoadEnd={handleLoadEnd}
                         javaScriptEnabled={true}
                         domStorageEnabled={true}
                         scalesPageToFit={deviceType !== 'mobile'}
@@ -157,7 +187,7 @@ const WebsitePreview = ({ route, navigation }) => {
                         />
                     </TouchableOpacity>
                 </View>
-                
+
                 <TouchableOpacity
                     style={styles.bottomCloseButton}
                     onPress={() => navigation.goBack()}

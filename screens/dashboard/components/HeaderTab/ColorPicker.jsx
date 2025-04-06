@@ -72,7 +72,7 @@ const ColorPicker = memo(({ currentColor, onColorSelect, colorType = 'background
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>
-          {colorType === 'background' ? 'Background Color' : 'Text Color'}
+          {colorType === 'background' ? 'Select Background Color' : 'Select Text Color'}
         </Text>
         <View style={styles.previewContainer}>
           <View 
@@ -118,7 +118,6 @@ const ColorPicker = memo(({ currentColor, onColorSelect, colorType = 'background
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    maxHeight: 400,
   },
   headerRow: {
     flexDirection: 'row',
@@ -135,7 +134,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   paletteContainer: {
-    maxHeight: 280,
+    maxHeight: 300,
     marginBottom: 12,
   },
   paletteSection: {

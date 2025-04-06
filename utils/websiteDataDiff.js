@@ -31,6 +31,17 @@ export const getSectionsDiff = (originalSections = [], currentSections = []) => 
   // Find sections that exist in both arrays
   const commonIds = originalIds.filter(id => currentIds.includes(id));
 
+  // Create position maps to determine if sections have been reordered
+  const originalPositions = {};
+  originalSections.forEach((section, index) => {
+    originalPositions[section.id] = index;
+  });
+  
+  const currentPositions = {};
+  currentSections.forEach((section, index) => {
+    currentPositions[section.id] = index;
+  });
+
   // If order differs, mark as reordered
   result.reordered = !deepEqual(
     commonIds,
@@ -55,12 +66,22 @@ export const getSectionsDiff = (originalSections = [], currentSections = []) => 
   result.updated = currentSections
     .filter(section => 
       originalIds.includes(section.id) && 
-      !deepEqual(section, originalMap[section.id])
+      (!deepEqual(section, originalMap[section.id]) || 
+       (originalPositions[section.id] !== currentPositions[section.id])) // Include if position changed
     )
-    .map(section => ({
-      id: section.id,
-      changes: getObjectDiff(originalMap[section.id], section)
-    }));
+    .map(section => {
+      const changes = getObjectDiff(originalMap[section.id], section);
+      
+      // Add position change info to changes if position has changed
+      if (originalPositions[section.id] !== currentPositions[section.id]) {
+        changes.sort_order = currentPositions[section.id]
+      }
+      
+      return {
+        id: section.id,
+        changes
+      };
+    });
 
   return result;
 };

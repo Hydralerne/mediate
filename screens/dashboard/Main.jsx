@@ -81,7 +81,8 @@ const Main = ({ navigation }) => {
         reorderSections,
         loading,
         setActiveWebsite,
-        hasUnsavedChanges
+        hasUnsavedChanges,
+        saveChanges
     } = useDashboard();
     
     // Set the active website when component mounts
@@ -109,7 +110,7 @@ const Main = ({ navigation }) => {
         if (section) {
             updateSection({
                 ...section,
-                active: !section.active
+                is_active: !section.is_active
             });
         }
     }, [sections, updateSection]);
@@ -256,7 +257,7 @@ const Main = ({ navigation }) => {
                     websiteName={websiteName}
                     websiteDomain={websiteDomain}
                     onShare={() => { }}
-                    hasUnsavedChanges={hasUnsavedChanges}
+                    hasUnsavedChanges={saveChanges}
                     onSettings={() => { }}
                 />
 

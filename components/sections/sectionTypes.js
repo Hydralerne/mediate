@@ -241,7 +241,7 @@ export function createDefaultSection(type) {
     title: metadata.title,
     description: metadata.description,
     type: type,
-    active: metadata.defaultActive,
+    is_active: metadata.defaultActive,
     icon: metadata.icon,
     items: []
   };

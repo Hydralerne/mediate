@@ -32,32 +32,29 @@ const EditorRouter = ({ route, navigation }) => {
     try {
       console.log('EditorRouter saving:', section.type, contentData);
 
-      // Build the updated section correctly based on the content data structure
+      // Build the updated section by directly merging properties
       let updatedSection;
       
-      // Handle different section content structures without losing data
+      // Handle different content structure types
       if (contentData && typeof contentData === 'object') {
         // For sections like portfolio and products that pass {items, settings}
         if (contentData.items !== undefined) {
           updatedSection = {
             ...section,
-            content: {
-              ...(section.content || {}),
-              ...contentData
-            }
+            ...contentData // Directly merge items and settings instead of nesting under content
           };
         } else {
-          // For simple content structures
+          // For simple content structures, merge directly into section
           updatedSection = {
             ...section,
-            content: contentData
+            ...contentData
           };
         }
       } else {
         // Fallback for primitive content data
         updatedSection = {
           ...section,
-          content: contentData
+          data: contentData // Use a generic "data" property if content is primitive
         };
       }
       
@@ -96,7 +93,7 @@ const EditorRouter = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <EditorComponent
-        data={section.content}
+        data={section}
         onSave={handleSave}
         onClose={handleClose}
       />
