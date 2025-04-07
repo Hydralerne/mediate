@@ -18,6 +18,7 @@ const saveOperationsCache = new Map();
  */
 async function updateWebsitePart(websiteId, endpoint, data, token) {
   const url = `https://api.oblien.com/sites/${websiteId}${endpoint ? `/${endpoint}` : ''}`;
+  console.log(data,url,'data');
   console.log(`Saving to: ${url}`);
 
   try {
@@ -105,21 +106,52 @@ export async function saveWebsiteChanges(websiteId, originalData, currentData, o
  * @returns {Object} Updates map
  */
 function prepareUpdates(changes, currentData, sendFullData) {
-  const updates = {
-    header: changes.header !== null ? {
+  // Initialize updates object
+  const updates = {};
+  
+  // Handle component changes (header, themes, etc.)
+  if (changes.header !== null) {
+    updates.header = {
       data: currentData.header,
-      endpoint: 'header',
-      type: 'header'
-    } : null,
+      endpoint: 'components/header',
+      type: 'component'
+    };
+  }
 
-    settings: changes.settings !== null ? {
-      data: currentData.settings,
-      endpoint: 'settings',
-      type: 'settings'
-    } : null,
-
-    sections: null
-  };
+  if (changes.themes !== null) {
+    updates.themes = {
+      data: currentData.themes,
+      endpoint: 'components/themes',
+      type: 'component'
+    };
+  }
+  
+  // Check if we need to combine component updates
+  const componentChanges = Object.keys(updates).filter(key => 
+    updates[key]?.type === 'component'
+  );
+  
+  // If we have multiple component changes, prepare a combined update
+  if (componentChanges.length > 1) {
+    const componentsData = {};
+    
+    // Collect all component data
+    componentChanges.forEach(key => {
+      componentsData[key] = currentData[key];
+    });
+    
+    // Replace individual component updates with a combined one
+    updates.components = {
+      data: componentsData,
+      endpoint: 'components',
+      type: 'components-combined'
+    };
+    
+    // Remove individual component updates
+    componentChanges.forEach(key => {
+      delete updates[key];
+    });
+  }
 
   // Handle section changes if any
   if (changes.sections) {
@@ -183,7 +215,6 @@ async function executeUpdates(websiteId, updates, token) {
   }
   // If multiple parts need updating, handle them in parallel
   else if (updateCount > 1) {
-
     const promises = validUpdates.map(update => {
       return updateWebsitePart(websiteId, update.endpoint, update.data, token);
     });

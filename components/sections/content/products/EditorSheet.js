@@ -136,11 +136,6 @@ export const EditorSheet = ({ data = {}, onSave, onClose }) => {
     const newProduct = {
       id: `product-${timestamp}`,
       key: `product-${timestamp}`,
-      title: '',
-      price: '',
-      imageUrl: '',
-      description: '',
-      type: 'product'
     };
 
     const sheetId = openBottomSheet(

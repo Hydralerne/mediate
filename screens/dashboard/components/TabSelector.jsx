@@ -23,7 +23,16 @@ const TabSelector = ({ activeTab, onTabChange }) => {
                     onPress={() => onTabChange('header')}
                 >
                     <Text style={[styles.tabButtonText, activeTab === 'header' && styles.activeTabButtonText]}>
-                        Header & background
+                        Header & navigation
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                    style={[styles.tabButton, activeTab === 'themes' && styles.activeTabButton]}
+                    onPress={() => onTabChange('themes')}
+                >
+                    <Text style={[styles.tabButtonText, activeTab === 'themes' && styles.activeTabButtonText]}>
+                        Layouts & themes
                     </Text>
                 </TouchableOpacity>
                 

@@ -39,6 +39,147 @@ export const DashboardProvider = ({ children }) => {
   // Ref for immediate access to current website ID
   const currentWebsiteIdRef = useRef(null);
 
+  // Store default header settings
+  const defaultHeader = {
+    backgroundColor: '#212529',
+    heroImage: null,
+    heroLayout: 'fullWidth',
+    displayMode: 'centered',
+    textColor: '#FFFFFF',
+    navigationStyle: 'topBar',
+    showBottomIcons: false
+  };
+
+  // Default theme settings
+  const defaultTheme = {
+    theme: 'dynamic',
+    backgroundColor: '#212529',
+    textColor: '#FFFFFF',
+    isDarkMode: true
+  };
+
+  // Function to get or initialize header settings for a website
+  const getHeaderSettings = useCallback((websiteId) => {
+    if (!websiteId) return defaultHeader;
+    
+    const websiteData = websiteDataMapRef.current[websiteId];
+    if (!websiteData || !websiteData.header) {
+      return defaultHeader;
+    }
+    
+    return {
+      ...defaultHeader,
+      ...websiteData.header
+    };
+  }, []);
+
+  // Function to get or initialize theme settings for a website
+  const getThemeSettings = useCallback((websiteId) => {
+    if (!websiteId) return defaultTheme;
+    
+    const websiteData = websiteDataMapRef.current[websiteId];
+    if (!websiteData || !websiteData.themes) {
+      return defaultTheme;
+    }
+    
+    return {
+      ...defaultTheme,
+      ...websiteData.themes
+    };
+  }, []);
+
+  // Function to update header settings
+  const updateHeaderSettings = useCallback((settings) => {
+    const websiteId = currentWebsiteIdRef.current;
+    if (!websiteId) {
+      console.error('No active website selected for updating header settings');
+      return false;
+    }
+
+    try {
+      // Get current website data from ref
+      const currentWebsiteData = websiteDataMapRef.current[websiteId] || {};
+      
+      // Create updated header with new settings
+      const updatedHeader = {
+        ...(currentWebsiteData.header || {}),
+        ...settings
+      };
+      
+      // Create updated website data
+      const updatedWebsiteData = {
+        ...currentWebsiteData,
+        header: updatedHeader
+      };
+      
+      // Update ref immediately for synchronous access
+      websiteDataMapRef.current = {
+        ...websiteDataMapRef.current,
+        [websiteId]: updatedWebsiteData
+      };
+      
+      // Update state for UI rendering
+      setWebsiteDataMap(prev => ({
+        ...prev,
+        [websiteId]: updatedWebsiteData
+      }));
+      
+      // Clear caches to ensure fresh change detection
+      clearChangesCache();
+
+      return true;
+    } catch (err) {
+      console.error('Error updating header settings:', err);
+      return false;
+    }
+  }, [checkIsSaving]);
+
+  // Function to update theme settings
+  const updateThemeSettings = useCallback((settings) => {
+    const websiteId = currentWebsiteIdRef.current;
+    if (!websiteId) {
+      console.error('No active website selected for updating theme settings');
+      return false;
+    }
+
+    try {
+      // Get current website data from ref
+      const currentWebsiteData = websiteDataMapRef.current[websiteId] || {};
+      
+      // Create updated theme with new settings
+      const updatedTheme = {
+        ...(currentWebsiteData.theme || {}),
+        ...settings
+      };
+      
+      // Create updated website data
+      const updatedWebsiteData = {
+        ...currentWebsiteData,
+        themes: updatedTheme
+      };
+      
+      // Update ref immediately for synchronous access
+      websiteDataMapRef.current = {
+        ...websiteDataMapRef.current,
+        [websiteId]: updatedWebsiteData
+      };
+      
+      // Update state for UI rendering
+      setWebsiteDataMap(prev => ({
+        ...prev,
+        [websiteId]: updatedWebsiteData
+      }));
+      
+      // Clear caches to ensure fresh change detection
+      clearChangesCache();
+
+      return true;
+    } catch (err) {
+      console.error('Error updating theme settings:', err);
+      return false;
+    }
+  }, [checkIsSaving]);
+
   // Update the refs when state changes
   useEffect(() => {
     websiteDataMapRef.current = websiteDataMap;
@@ -539,71 +680,6 @@ export const DashboardProvider = ({ children }) => {
     return sectionsForWebsite.find(section => section.id === sectionId) || null;
   }, []);
 
-  // Update website header for the current website
-  const updateWebsiteHeader = useCallback(async (headerData) => {
-    const websiteId = currentWebsiteIdRef.current;
-    if (!websiteId) {
-      console.error('No active website selected');
-      return false;
-    }
-
-    if (!headerData) {
-      console.error('Invalid header data provided to updateWebsiteHeader');
-      return false;
-    }
-
-    // Skip if the website is currently being saved
-    if (checkIsSaving()) {
-      console.log('Cannot update header while website is being saved');
-      return false;
-    }
-
-    loadingRef.current = true;
-    setLoadingDebounced(true);
-    try {
-      // Get current website data from ref
-      const currentWebsiteData = websiteDataMapRef.current[websiteId] || {};
-      
-      // Skip update if no actual changes
-      if (deepEqual(currentWebsiteData.header, headerData)) {
-        console.log('No changes to header, skipping update');
-        return true;
-      }
-      
-      // Create updated website data
-      const updatedWebsiteData = {
-        ...currentWebsiteData,
-        header: headerData
-      };
-      
-      // Update ref immediately for synchronous access
-      websiteDataMapRef.current = {
-        ...websiteDataMapRef.current,
-        [websiteId]: updatedWebsiteData
-      };
-      
-      // Update state for UI rendering
-      setWebsiteDataMap(prev => ({
-        ...prev,
-        [websiteId]: updatedWebsiteData
-      }));
-      
-      // Clear caches to ensure fresh change detection
-      clearChangesCache();
-
-      setError(null);
-      return true;
-    } catch (err) {
-      setError('Failed to update website header');
-      console.error('Error updating website header:', err);
-      return false;
-    } finally {
-      loadingRef.current = false;
-      setLoadingDebounced(false);
-    }
-  }, [setLoadingDebounced, checkIsSaving]);
-
-
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
     sections,
@@ -619,7 +695,6 @@ export const DashboardProvider = ({ children }) => {
     deleteSection,
     reorderSections,
     getSection,
-    updateWebsiteHeader,
     // Keep using state for the UI, but provide the getter function for immediate value
     currentWebsiteId,
     getCurrentWebsiteId: () => currentWebsiteIdRef.current,
@@ -627,7 +702,15 @@ export const DashboardProvider = ({ children }) => {
     saveChanges,
     discardChanges,
     // Data export functions
-    exportWebsiteData
+    exportWebsiteData,
+
+    // Header settings related functions
+    getHeaderSettings,
+    updateHeaderSettings,
+    
+    // Theme settings related functions
+    getThemeSettings,
+    updateThemeSettings,
   }), [
     sections,
     websiteData,
@@ -642,12 +725,19 @@ export const DashboardProvider = ({ children }) => {
     deleteSection,
     reorderSections,
     getSection,
-    updateWebsiteHeader,
     currentWebsiteId,
     refreshWebsite,
     saveChanges,
     discardChanges,
-    exportWebsiteData
+    exportWebsiteData,
+
+    // Header settings
+    getHeaderSettings,
+    updateHeaderSettings,
+    
+    // Theme settings
+    getThemeSettings,
+    updateThemeSettings,
   ]);
 
   return (

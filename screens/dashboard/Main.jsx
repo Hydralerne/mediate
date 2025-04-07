@@ -19,12 +19,10 @@ import Header from './components/Header';
 import QuickStats from './components/QuickStats';
 import ContentSection from './components/ContentSection';
 import TabSelector from './components/TabSelector';
-import ContentHeader from './components/ContentHeader';
-import HeaderTab from './components/HeaderTab/Main';
-import SocialTab from './components/HeroTab/SocialTab';
 import BottomActions from './components/BottomActions';
 import { useBottomSheet } from '../../contexts/BottomSheet';
 import AddSectionSheet from './components/AddSectionSheet';
+import { getTabComponent } from './routes';
 
 // Import our dashboard context
 import { useDashboard } from '../../contexts/DashboardContext';
@@ -230,23 +228,14 @@ const Main = ({ navigation }) => {
         );
     }, [sectionHandlers, navigation]);
 
-    // Memoize tab components
-    const ContentTabComponent = useMemo(() => (
-        <ContentHeader
-            title="Website Sections"
-            subtitle="Drag sections to reorder how they appear on your website"
-        />
-    ), []);
-
-    const HeaderTabComponent = useMemo(() => <HeaderTab />, []);
-
-    const SocialTabComponent = useMemo(() => (
-        <SocialTab
-            socialLinks={socialLinks}
-            onAddSocialLink={handleAddSocialLink}
-            onRemoveSocialLink={handleRemoveSocialLink}
-        />
-    ), [socialLinks, handleAddSocialLink, handleRemoveSocialLink]);
+    // Replace the memoized tab components with a single memoized active component
+    const activeTabComponent = useMemo(() => 
+        getTabComponent(activeTab, {
+            socialLinks,
+            onAddSocialLink: handleAddSocialLink,
+            onRemoveSocialLink: handleRemoveSocialLink
+        })
+    , [activeTab, socialLinks, handleAddSocialLink, handleRemoveSocialLink]);
 
     // Memoize the ListHeaderComponent
     const ListHeaderComponent = useMemo(() => (
@@ -275,9 +264,7 @@ const Main = ({ navigation }) => {
                 />
             </View>
 
-            {activeTab === 'content' && ContentTabComponent}
-            {activeTab === 'header' && HeaderTabComponent}
-            {activeTab === 'social' && SocialTabComponent}
+            {activeTabComponent}
         </>
     ), [
         insets.top,
@@ -286,9 +273,7 @@ const Main = ({ navigation }) => {
         stats,
         activeTab,
         handleTabChange,
-        ContentTabComponent,
-        HeaderTabComponent,
-        SocialTabComponent
+        activeTabComponent
     ]);
 
     // Efficient onDragEnd handler with requestAnimationFrame for smoother UI

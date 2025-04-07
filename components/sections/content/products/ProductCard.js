@@ -13,7 +13,7 @@ const ProductCard = ({
 }) => {
   if (!item) return null;
 
-  const image = getImage(item?.imageUrls?.[0] || item?.imageUrl, 'medium');
+  const image = getImage(item?.image_urls?.[0], 'medium');
 
   const isGrid = displayStyle === 'grid';
   const isHorizontal = displayStyle === 'horizontal';
@@ -46,7 +46,6 @@ const ProductCard = ({
           </View>
         )}
       </View>
-
       <View style={[!isList && styles.bottomContainer]}>
         {/* Info */}
         <View style={[
@@ -62,16 +61,14 @@ const ProductCard = ({
           <Text style={styles.productPrice}>
             {item.price ? `$${item.price}` : 'No price'}
           </Text>
-
           {/* Featured badge for list view */}
-          {isList && item.featured && (
+          {isList && item.featured === true && (
             <View style={styles.listFeaturedBadge}>
               <Ionicons name="star" size={12} color="#fff" />
               <Text style={styles.featuredText}>Featured</Text>
             </View>
           )}
         </View>
-
         {/* Drag handle - more visible */}
         <View style={[
           styles.dragHandleContainer,
@@ -90,7 +87,6 @@ const ProductCard = ({
       >
         <Image source={require('../../../../assets/icons/home/pen-83-1666783638.png')} style={styles.editButtonImage} />
       </TouchableOpacity>
-
       {/* Delete button */}
       <TouchableOpacity
         style={[
@@ -101,10 +97,8 @@ const ProductCard = ({
       >
         <Image source={require('../../../../assets/icons/home/delete-29-1661490994.png')} style={styles.deleteButtonImage} />
       </TouchableOpacity>
-
-
       {/* Featured badge for grid and horizontal views */}
-      {!isList && item.featured && (
+      {!isList && item.featured === true && (
         <View style={styles.featuredBadge}>
           <Ionicons name="star" size={12} color="#fff" />
           <Text style={styles.featuredText}>Featured</Text>

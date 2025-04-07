@@ -132,6 +132,7 @@ export const getWebsiteChanges = (originalData, currentData) => {
   const changes = {
     sections: null,
     header: null,
+    themes: null,
     settings: null,
     hasChanges: false
   };
@@ -168,6 +169,19 @@ export const getWebsiteChanges = (originalData, currentData) => {
     
     if (Object.keys(headerDiff).length > 0) {
       changes.header = headerDiff;
+      changes.hasChanges = true;
+    }
+  }
+
+  // Check themes changes
+  if (safeOriginal.themes || safeCurrent.themes) {
+    const themesDiff = getObjectDiff(
+      safeOriginal.themes || {}, 
+      safeCurrent.themes || {}
+    );
+    
+    if (Object.keys(themesDiff).length > 0) {
+      changes.themes = themesDiff;
       changes.hasChanges = true;
     }
   }

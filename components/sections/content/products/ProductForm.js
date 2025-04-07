@@ -111,18 +111,18 @@ const CurrencySelector = ({ onSelect, currentCurrency, onClose }) => {
 };
 
 const ProductForm = ({ product = {}, isNew = false, onSave, onClose }) => {
+
   const [formData, setFormData] = useState({
     title: product.title || '',
     price: product.price || '',
-    currency: product.currency || 'USD', // Default initial value, will be updated in useEffect
-    imageUrl: product.imageUrl || '', // Keep for backward compatibility
-    imageUrls: product.imageUrls || (product.imageUrl ? [product.imageUrl] : []), // Array for multiple images
+    currency: product.currency || 'USD',
+    image_urls: product.image_urls || [],
     description: product.description || '',
-    externalLink: product.externalLink || '',
-    sellDirectly: product.sellDirectly !== false, // Default to true
+    external_link: product.external_link || '',
+    sell_directly: product.sell_directly !== false,
     inventory: product.inventory?.toString() || '0',
     featured: product.featured || false,
-    options: product.options || [] // Product options (size, color, etc.)
+    options: product.options || []
   });
 
   const { openBottomSheet, closeBottomSheet } = useBottomSheet();
@@ -260,11 +260,11 @@ const ProductForm = ({ product = {}, isNew = false, onSave, onClose }) => {
         const inventory = parseInt(formData.inventory) || 0;
         
         // Ensure backward compatibility by setting imageUrl to the first image
-        const mainImageUrl = formData.imageUrls.length > 0 ? formData.imageUrls[0] : '';
+        const mainImageUrl = formData.image_urls.length > 0 ? formData.image_urls[0] : '';
         
         onSave({
           ...formData,
-          imageUrl: mainImageUrl, // Set the first image as the main imageUrl for compatibility
+          image_url: mainImageUrl, // Set the first image as the main imageUrl for compatibility
           inventory
         });
       }
@@ -334,7 +334,7 @@ const ProductForm = ({ product = {}, isNew = false, onSave, onClose }) => {
             </Text>
             
             <ImageHandler
-              imageUris={formData.imageUrls}
+              imageUris={formData.image_urls}
               onImageSelected={(response) => handleImagesUpdate(response, setFormData)}
               onImageRemoved={(index, newImages) => handleImagesUpdate(newImages, setFormData)}
               upload={true}
@@ -412,21 +412,21 @@ const ProductForm = ({ product = {}, isNew = false, onSave, onClose }) => {
               </Text>
             </View>
             <Switch
-              value={formData.sellDirectly}
-              onValueChange={(value) => updateField('sellDirectly', value)}
+              value={formData.sell_directly}
+              onValueChange={(value) => updateField('sell_directly', value)}
               trackColor={{ false: '#D1D1D6', true: colors.primary || '#000' }}
               thumbColor="#FFFFFF"
             />
           </View>
 
           {/* External Link (only show if not selling directly) */}
-          {!formData.sellDirectly && (
+          {!formData.sell_directly && (
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>External Purchase Link</Text>
               <BottomSheetTextInput
                 style={styles.input}
-                value={formData.externalLink}
-                onChangeText={(value) => updateField('externalLink', value)}
+                value={formData.external_link}
+                onChangeText={(value) => updateField('external_link', value)}
                 placeholder="https://example.com/buy-product"
                 autoCapitalize="none"
                 placeholderTextColor="#ccc"
@@ -435,7 +435,7 @@ const ProductForm = ({ product = {}, isNew = false, onSave, onClose }) => {
           )}
 
           {/* Inventory (only show if selling directly) */}
-          {formData.sellDirectly && (
+          {formData.sell_directly && (
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Inventory</Text>
               <BottomSheetTextInput

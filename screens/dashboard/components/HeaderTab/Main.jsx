@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ImageHandler from '../../../../components/global/ImageHandler';
-import ColorPicker from './ColorPicker';
 import HeroPreview from './HeroPreview';
 import NavigationOptions from './NavigationOptions';
 import NavigationPreview from './NavigationPreview';
 import { useBottomSheet } from '../../../../contexts/BottomSheet';
+import { useDashboard } from '../../../../contexts/DashboardContext';
 
 // Hero layout options
 const HERO_LAYOUTS = [
@@ -51,110 +51,90 @@ const getContrastingTextColor = (backgroundColor) => {
 };
 
 const HeaderTab = () => {
-    const { openBottomSheet, closeBottomSheet } = useBottomSheet();
-    
-    // State for header settings
-    const [headerSettings, setHeaderSettings] = useState({
-        backgroundColor: '#212529',
-        heroImage: null,
-        heroLayout: 'fullWidth',
-        displayMode: 'centered',
-        textColor: '#FFFFFF',
-        navigationStyle: 'topBar',
-        showBottomIcons: true
-    });
+    const { 
+        currentWebsiteId, 
+        getHeaderSettings, 
+        updateHeaderSettings 
+    } = useDashboard();
 
+    // Get header settings from context
+    const headerSettings = getHeaderSettings(currentWebsiteId);
+    
     // Update text color when background color changes
     useEffect(() => {
         const contrastingTextColor = getContrastingTextColor(headerSettings.backgroundColor);
         if (headerSettings.textColor !== contrastingTextColor) {
-            setHeaderSettings(prev => ({
-                ...prev,
+            updateHeaderSettings({
+                ...headerSettings,
                 textColor: contrastingTextColor
-            }));
+            });
         }
     }, [headerSettings.backgroundColor]);
 
     // Handle background color change
     const handleBackgroundColorChange = (color) => {
-        setHeaderSettings(prev => ({
-            ...prev,
+        updateHeaderSettings({
+            ...headerSettings,
             backgroundColor: color,
             // Automatically set contrasting text color
             textColor: getContrastingTextColor(color)
-        }));
+        });
     };
-
-    // Open color picker in bottom sheet
-    const openColorPicker = () => {
-        const sheetId = openBottomSheet(
-            <ColorPicker 
-                currentColor={headerSettings.backgroundColor}
-                onColorSelect={(color) => {
-                    handleBackgroundColorChange(color);
-                    closeBottomSheet(sheetId);
-                }}
-                colorType="background"
-            />,
-            ['50%']
-        );
-    };
-
     // Handle hero image update
     const handleHeroImageUpdate = (response) => {
         if (Array.isArray(response)) {
             // Handle image removal
-            setHeaderSettings(prev => ({
-                ...prev,
+            updateHeaderSettings({
+                ...headerSettings,
                 heroImage: response.length > 0 ? response[0] : null
-            }));
+            });
         } else if (response && response.files) {
             // Handle bulk file upload
             const newUrl = response.files.map(file => file.url)[0];
-            setHeaderSettings(prev => ({
-                ...prev,
+            updateHeaderSettings({
+                ...headerSettings,
                 heroImage: newUrl
-            }));
+            });
         } else if (response && response.url) {
             // Handle single file upload
-            setHeaderSettings(prev => ({
-                ...prev,
+            updateHeaderSettings({
+                ...headerSettings,
                 heroImage: response.url
-            }));
+            });
         }
     };
 
     // Handle hero layout change
     const handleLayoutChange = (layout) => {
-        setHeaderSettings(prev => ({
-            ...prev,
+        updateHeaderSettings({
+            ...headerSettings,
             heroLayout: layout
-        }));
+        });
     };
 
     // Handle navigation style change
     const handleNavigationStyleChange = (style) => {
-        setHeaderSettings(prev => ({
-            ...prev,
+        updateHeaderSettings({
+            ...headerSettings,
             navigationStyle: style
-        }));
+        });
     };
 
     // Toggle bottom bar icons
     const toggleBottomIcons = () => {
-        setHeaderSettings(prev => ({
-            ...prev,
-            showBottomIcons: !prev.showBottomIcons
-        }));
+        updateHeaderSettings({
+            ...headerSettings,
+            showBottomIcons: !headerSettings.showBottomIcons
+        });
     };
 
     // Create preview data for HeroPreview component
     const previewData = {
-        backgroundColor: headerSettings.backgroundColor,
+        backgroundColor: headerSettings.backgroundColor || '#212529',
         heroImage: headerSettings.heroImage,
         displayMode: headerSettings.displayMode,
         heroLayout: headerSettings.heroLayout,
-        textColor: headerSettings.textColor
+        textColor: headerSettings.textColor || '#FFFFFF'
     };
 
     return (
@@ -166,32 +146,6 @@ const HeaderTab = () => {
                 {/* Preview Section */}
                 <View style={styles.previewContainer}>
                     <HeroPreview headerData={previewData} />
-                </View>
-
-                {/* Colors Section */}
-                <Text style={styles.sectionLabel}>Colors</Text>
-                <View style={styles.colorOptionsRow}>
-                    {/* Background Color */}
-                    <TouchableOpacity 
-                        style={styles.colorButton}
-                        onPress={openColorPicker}
-                    >
-                        <View style={[styles.colorSwatch, { backgroundColor: headerSettings.backgroundColor }]} />
-                        <View style={styles.colorButtonTextContainer}>
-                            <Text style={styles.colorButtonLabel}>Background</Text>
-                            <Text style={styles.colorButtonValue}>{headerSettings.backgroundColor}</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={14} color="#777" />
-                    </TouchableOpacity>
-
-                    {/* Text Color */}
-                    <View style={styles.colorButton}>
-                        <View style={[styles.colorSwatch, { backgroundColor: headerSettings.textColor }]} />
-                        <View style={styles.colorButtonTextContainer}>
-                            <Text style={styles.colorButtonLabel}>Text (Auto)</Text>
-                            <Text style={styles.colorButtonValue}>{headerSettings.textColor}</Text>
-                        </View>
-                    </View>
                 </View>
 
                 {/* Hero Layout Section */}
@@ -208,7 +162,7 @@ const HeaderTab = () => {
                         >
                             <Ionicons 
                                 name={layout.icon} 
-                                size={24} 
+                                size={22} 
                                 color={headerSettings.heroLayout === layout.id ? "#fff" : "#000"} 
                             />
                             <Text 
@@ -248,8 +202,8 @@ const HeaderTab = () => {
                 <View style={styles.navPreviewContainer}>
                     <NavigationPreview 
                         navStyle={headerSettings.navigationStyle}
-                        backgroundColor={headerSettings.backgroundColor}
-                        textColor={headerSettings.textColor}
+                        backgroundColor={headerSettings.backgroundColor || '#212529'}
+                        textColor={headerSettings.textColor || '#FFFFFF'}
                         showIcons={headerSettings.showBottomIcons}
                     />
                 </View>
@@ -294,7 +248,6 @@ const HeaderTab = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f2f2f7',
     },
     card: {
         margin: 16,
@@ -302,8 +255,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 16,
         padding: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.05)',
     },
     cardTitle: {
         fontSize: 18,
@@ -322,45 +273,6 @@ const styles = StyleSheet.create({
         color: '#333',
         marginBottom: 10,
         marginTop: 8,
-    },
-    colorOptionsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    colorButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 10,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
-        borderRadius: 8,
-        marginHorizontal: 4,
-        height: 48,
-    },
-    colorSwatch: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
-        marginRight: 8,
-    },
-    colorButtonTextContainer: {
-        flex: 1,
-    },
-    colorButtonLabel: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: '#333',
-    },
-    colorButtonValue: {
-        fontSize: 11,
-        fontFamily: 'monospace',
-        color: '#777',
-        marginTop: 1,
     },
     layoutOptionsRow: {
         flexDirection: 'row',

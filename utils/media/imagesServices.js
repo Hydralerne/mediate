@@ -31,21 +31,21 @@ export const handleImagesUpdate = (response, setFormData) => {
         // If we receive an array of URLs (from onImageRemoved)
         setFormData(prev => ({
             ...prev,
-            imageUrls: response,
+            image_urls: response,
             imageUrl: response.length > 0 ? response[0] : '' // Update the legacy single imageUrl
         }));
     } else if (response && response.files) {
         // Handle bulk file upload response with multiple files
         // Replace local file URLs with uploaded remote URLs
-        const imageUrls = response.files.map(file => file.url);
+        const image_urls = response.files.map(file => file.url);
 
         setFormData(prev => {
             // Filter out local file:// URLs and replace with remote URLs
-            const filteredUrls = prev.imageUrls.filter(url => !url.startsWith('file:///'));
+            const filteredUrls = prev.image_urls.filter(url => !url.startsWith('file:///'));
             return {
                 ...prev,
-                imageUrl: imageUrls[0] || filteredUrls[0] || '', // First image as main image
-                imageUrls: [...filteredUrls, ...imageUrls] // Keep remote URLs + add new remote URLs
+                imageUrl: image_urls[0] || filteredUrls[0] || '', // First image as main image
+                image_urls: [...filteredUrls, ...image_urls] // Keep remote URLs + add new remote URLs
             };
         });
     } else if (response && response.url) {
@@ -54,11 +54,11 @@ export const handleImagesUpdate = (response, setFormData) => {
 
         setFormData(prev => {
             // Remove the corresponding local file:// URL (assuming it's the last one added)
-            const filteredUrls = prev.imageUrls.filter(url => !url.startsWith('file:///'));
+            const filteredUrls = prev.image_urls.filter(url => !url.startsWith('file:///'));
             return {
                 ...prev,
                 imageUrl: imageUrl || filteredUrls[0] || '', // Use the remote URL as main image
-                imageUrls: [...filteredUrls, imageUrl] // Keep other remote URLs + add new remote URL
+                image_urls: [...filteredUrls, imageUrl] // Keep other remote URLs + add new remote URL
             };
         });
     }
