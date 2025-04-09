@@ -8,6 +8,7 @@ import EditorRouter from './EditorRouter';
 const Stack = createNativeStackNavigator();
 import { BottomSheetProvider } from '../contexts/BottomSheet';
 import { DashboardProvider } from '../contexts/DashboardContext';
+import Assistant from '../screens/assistant/Main';
 
 const RootNavigator = () => {
 
@@ -56,6 +57,10 @@ const RootNavigator = () => {
                             presentation: 'card',
                             fullScreenGestureEnabled: false,
                         }}
+                    />
+                    <Stack.Screen
+                        name="Assistant"
+                        component={Assistant}
                     />
                 </Stack.Navigator>
             </BottomSheetProvider>

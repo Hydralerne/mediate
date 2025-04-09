@@ -101,7 +101,7 @@ const Main = () => {
 
   const handleCreateNew = () => {
     // Navigate to create new website flow
-    navigation.navigate('SetupSite');
+    navigation.navigate('Assistant');
     // navigation.navigate('OnboardingWelcome');
   };
 

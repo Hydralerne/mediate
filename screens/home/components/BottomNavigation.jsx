@@ -118,7 +118,7 @@ const BottomNavigation = ({ activeTab, setActiveTab, onCreateNew }) => {
             onPress={onCreateNew}
             activeOpacity={0.9}
           >
-            <Image source={require('../../../assets/icons/home/plus 4-12-1662493809.png')} style={styles.createButtonIcon} />
+            <Image source={require('../../../assets/icons/home/analyze_voice_ai__5ZfRJgasxH4A159Pf22mlK5EX993aaxjG7yE.png')} style={styles.createButtonIcon} />
           </TouchableOpacity>
         </Animated.View>
       </View>
