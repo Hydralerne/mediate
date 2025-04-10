@@ -2,6 +2,7 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import WhisperAPIService from './WhisperAPIService';
+import AudioMeteringService from './AudioMeteringService';
 
 // Import only what we need
 import AudioRecorder from './AudioRecorder';
@@ -21,6 +22,9 @@ class AudioStreamService {
         // Initialize recorder
         this.recorder = new AudioRecorder(); 
         
+        // Initialize metering service
+        AudioMeteringService.setRecorder(this.recorder);
+        
         // Service state
         this.isStreaming = false;
         this.isStopping = false;
@@ -37,12 +41,19 @@ class AudioStreamService {
         this.onTranscriptionCallback = null;
         this.onSpeechEndCallback = null;
         this.onErrorCallback = null;
+        this.onMeteringUpdateCallback = null;
     }
 
-    setCallbacks({ onTranscription, onError, onSpeechEnd }) {
+    setCallbacks({ onTranscription, onError, onSpeechEnd, onMeteringUpdate }) {
         this.onTranscriptionCallback = onTranscription;
         this.onErrorCallback = onError;
         this.onSpeechEndCallback = onSpeechEnd;
+        
+        // Set audio metering callback
+        if (onMeteringUpdate) {
+            this.onMeteringUpdateCallback = onMeteringUpdate;
+            AudioMeteringService.setMeteringCallback(onMeteringUpdate);
+        }
         
         // Set up WebSocket event listeners
         WhisperAPIService.on('transcription', (data) => {
@@ -102,7 +113,6 @@ class AudioStreamService {
             const recording = await this.recorder.startRecording({
                  sampleRate: 16000, // CRITICAL: Match server!
                  numberOfChannels: 1, // CRITICAL: Match server!
-                 // Add other necessary options for PCM S16LE output if available
             });
             if (!recording) {
                 console.error('[AudioStreamService] Failed to start recording.');
@@ -110,6 +120,10 @@ class AudioStreamService {
                 return false;
             }
             console.log('[AudioStreamService] Recording started.');
+            
+            // Start metering service for audio visualization
+            AudioMeteringService.resetMetering();
+            AudioMeteringService.startMetering();
             
             // Start streaming immediately
             this.isStreaming = true;
@@ -242,6 +256,9 @@ class AudioStreamService {
 
         console.log('[AudioStreamService] Stopping streaming...');
         this.isStopping = true;
+
+        // Stop audio metering
+        AudioMeteringService.stopMetering();
 
         this.stopPromise = new Promise(async (resolve) => {
             try {
@@ -382,6 +399,10 @@ class AudioStreamService {
         console.log('[AudioStreamService] Cleaning up...');
         // Reset state
         this.recorder.cleanup();
+        
+        // Reset audio metering
+        AudioMeteringService.resetMetering();
+        
         // Ensure connection is closed in stopStreaming finally block
         // WhisperAPIService.closeConnection(); 
         this.lastPosition = WAV_HEADER_SKIP_BYTES;
@@ -433,6 +454,14 @@ class AudioStreamService {
         view.setUint8(16, flags);
 
         return header;
+    }
+
+    // Get current audio levels for visualization
+    getAudioLevels() {
+        return {
+            current: AudioMeteringService.getCurrentLevel(),
+            history: AudioMeteringService.getLevelHistory()
+        };
     }
 }
 

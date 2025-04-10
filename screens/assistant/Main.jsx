@@ -21,8 +21,8 @@ import AssistantResponse from './components/AssistantResponse';
 import WelcomeMessage from './components/WelcomeMessage';
 import AudioStreamService from './services/AudioStreamService';
 import AssistantAPI from './services/AssistantAPI';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+import AIView from './components/AIView';
+import Header from './components/Header';
 
 const Main = () => {
   const [messages, setMessages] = useState([]);
@@ -35,7 +35,7 @@ const Main = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [username, setUsername] = useState('there'); // Default username
-  
+  const [audioLevel, setAudioLevel] = useState(0);
   const scrollViewRef = useRef(null);
   const textInputRef = useRef(null);
   const contentHeight = useRef(0);
@@ -68,7 +68,11 @@ const Main = () => {
     AudioStreamService.setCallbacks({
       onTranscription: handleLiveTranscription,
       onError: handleError,
-      onSpeechEnd: () => setIsProcessing(false)
+      onSpeechEnd: () => setIsProcessing(false),
+      onMeteringUpdate: (data) => {
+        console.log('data', data.level)
+        setAudioLevel(data.level)
+      }
     });
     
     AudioStreamService.setAudioFormat('wav'); // Use WAV format for better quality
@@ -121,8 +125,8 @@ const Main = () => {
   });
   
   const handleLiveTranscription = async (data, isFinal) => {
-    console.log('data', data)
 
+    // NOT USED NOW AS  WE ARE USING THE URL TO GET THE TRANSCRIPTION
     return
 
     setLiveTranscription(data.text);
@@ -262,13 +266,9 @@ const Main = () => {
   );
   
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <View style={styles.safeArea} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
-      
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Oblien Assistant</Text>
-      </View>
-      
+      <Header />
       <KeyboardAvoidingView 
         style={styles.keyboardAvoid} 
         behavior={Platform.OS === 'ios' ? 'padding' : null}
@@ -280,6 +280,7 @@ const Main = () => {
           contentContainerStyle={[
             styles.messagesContent,
             {
+              paddingTop: 60,
               paddingBottom: keyboardVisible ? (keyboardHeight > 0 ? keyboardHeight - insets.bottom : 20) : 100
             }
           ]}
@@ -288,6 +289,7 @@ const Main = () => {
         >
           {messages.length === 0 ? (
             <View style={styles.emptyState}>
+              <AIView audioLevel={audioLevel} />
               <WelcomeMessage 
                 username={username} 
                 onSuggestionPress={handleSuggestionPress}
@@ -375,7 +377,7 @@ const Main = () => {
           )}
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -389,20 +391,6 @@ const styles = createStyles({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  header: {
-    width: '100%',
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lightBorder,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.mainColor,
   },
   keyboardAvoid: {
     flex: 1,
@@ -434,9 +422,8 @@ const styles = createStyles({
   },
   inputContainer: {
     width: '100%',
-    borderTopWidth: 1,
-    borderTopColor: colors.lightBorder,
     padding: 12,
+    paddingBottom: 35,
   },
   inputBlur: {
     position: 'absolute',

@@ -10,6 +10,7 @@ class AudioRecorder {
         this.recording = null;
         this.audioFormat = 'wav';
         this.lastRecordingUri = null;
+        this.interval = null;
     }
 
     setAudioFormat(format) {
@@ -49,6 +50,7 @@ class AudioRecorder {
 
             // Define base options structure expected by createAsync
             let recordingOptions = {
+                isMeteringEnabled: true,
                 android: {
                     extension: '.wav',
                     outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_DEFAULT,
@@ -70,7 +72,7 @@ class AudioRecorder {
                     linearPCMIsFloat: false,
                     outputFormat: Audio.RECORDING_OPTION_IOS_OUTPUT_FORMAT_LINEARPCM, // Force Linear PCM
                     // Add any specific options passed via the 'options' parameter
-                     ...options.ios
+                    ...options.ios
                 }
             };
 
@@ -83,7 +85,7 @@ class AudioRecorder {
                 recordingOptions.android.numberOfChannels = options.numberOfChannels;
                 recordingOptions.ios.numberOfChannels = options.numberOfChannels;
             }
-            
+
             // Ensure critical options are set correctly for PCM 16kHz mono
             recordingOptions.android.sampleRate = 16000;
             recordingOptions.android.numberOfChannels = 1;
@@ -96,7 +98,7 @@ class AudioRecorder {
 
             // Add warning for Android PCM capability
             if (Platform.OS === 'android') {
-                 console.warn('[AudioRecorder] Android PCM recording requires careful configuration and might depend on device capabilities. Ensure encoder/format allows PCM S16LE if possible.');
+                console.warn('[AudioRecorder] Android PCM recording requires careful configuration and might depend on device capabilities. Ensure encoder/format allows PCM S16LE if possible.');
             }
 
             if (Platform.OS === 'ios') {
@@ -105,13 +107,11 @@ class AudioRecorder {
 
             // Small delay to ensure audio system is ready
             await new Promise(resolve => setTimeout(resolve, 300));
-            
-            // Start recording with the full nested options object
-            console.log('[AudioRecorder] Starting recording with options:', JSON.stringify(recordingOptions, null, 2));
+
             const { recording } = await Audio.Recording.createAsync(recordingOptions);
             this.recording = recording;
             console.log('[AudioRecorder] Recording started');
-            
+
             return recording;
         } catch (error) {
             console.error('[AudioRecorder] Error starting recording:', error);
@@ -130,24 +130,24 @@ class AudioRecorder {
             await recordingRef.stopAndUnloadAsync();
             const uri = recordingRef.getURI();
             this.lastRecordingUri = uri;
-            
+
             // Get file info
             let info = { exists: false, size: 0, modificationTime: 0 };
             if (uri) {
                 try {
                     info = await FileSystem.getInfoAsync(uri);
                 } catch (e) {
-                     console.warn(`[AudioRecorder] Could not get info for URI ${uri}:`, e);
+                    console.warn(`[AudioRecorder] Could not get info for URI ${uri}:`, e);
                 }
             }
-            
+
             if (!info.exists) {
                 console.error('[AudioRecorder] Recording file not found after stopping');
                 return null;
             }
 
             console.log(`[AudioRecorder] Recording stopped, file size: ${info.size} bytes`);
-            
+
             // Return audio file data
             return {
                 uri,
@@ -163,22 +163,38 @@ class AudioRecorder {
         }
     }
 
+    async getMetering(setMetering) {
+        if(this.interval) {
+            clearInterval(this.interval);
+        }
+        this.interval = setInterval(async () => {
+            try {
+                const status = await this.recording.getStatusAsync();
+                if (status.metering) {
+                    setMetering(prev => [...prev.slice(-30), status.metering]);
+                }
+            } catch (e) {
+                console.warn('Error reading metering:', e);
+            }
+        }, 500);
+    }
+
     async getAudioFile() {
         if (!this.recording) return null;
-        
+
         try {
             const uri = this.recording.getURI();
             if (!uri) return null;
-            
+
             let info = { exists: false, size: 0, modificationTime: 0 };
             try {
-                 info = await FileSystem.getInfoAsync(uri);
+                info = await FileSystem.getInfoAsync(uri);
             } catch (e) {
-                 console.warn(`[AudioRecorder] Could not get info for URI ${uri} in getAudioFile:`, e);
+                console.warn(`[AudioRecorder] Could not get info for URI ${uri} in getAudioFile:`, e);
             }
-            
+
             if (!info.exists) return null;
-            
+
             return {
                 uri,
                 size: info.size,
@@ -192,7 +208,13 @@ class AudioRecorder {
     }
 
     cleanup() {
+        clearInterval(this.interval);
         this.recording = null;
+    }
+
+    // Get the current recording instance for metering
+    getRecording() {
+        return this.recording;
     }
 }
 
