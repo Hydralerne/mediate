@@ -42,13 +42,14 @@ class AudioStreamService {
         this.onSpeechEndCallback = null;
         this.onErrorCallback = null;
         this.onMeteringUpdateCallback = null;
+        this.onAiResponseCallback = null;
     }
 
-    setCallbacks({ onTranscription, onError, onSpeechEnd, onMeteringUpdate }) {
+    setCallbacks({ onTranscription, onError, onSpeechEnd, onMeteringUpdate, onAiResponse }) {
         this.onTranscriptionCallback = onTranscription;
         this.onErrorCallback = onError;
         this.onSpeechEndCallback = onSpeechEnd;
-        
+        this.onAiResponseCallback = onAiResponse;
         // Set audio metering callback
         if (onMeteringUpdate) {
             this.onMeteringUpdateCallback = onMeteringUpdate;

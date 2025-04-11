@@ -22,13 +22,13 @@ export const eyeShapes = {
     getPath: shapes.standard,
     // Expression settings
     settings: {
-      squint: 0,
+      squint: 2,
       eyeScale: 1,
       eyeTransformY: 0,
       pupilSize: 0.3,
       lookTargetX: 0,
       lookTargetY: 0,
-      pupilConstraintX: 0.7,
+      pupilConstraintX: 0.5,
       pupilConstraintY: 0.7
     },
     // Blinking behavior
@@ -44,14 +44,14 @@ export const eyeShapes = {
   happy: {
     getPath: shapes.happy,
     settings: {
-      // squint: 0.3,
-      // eyeScale: 0.8,
-      // eyeTransformY: 0,
-      // pupilSize: 0.35,
-      // lookTargetX: 0,
-      // lookTargetY: -0.05,
-      // pupilConstraintX: 0.6,
-      // pupilConstraintY: 0.7
+      squint: 0.3,
+      eyeScale: 0.8,
+      eyeTransformY: 0,
+      pupilSize: 0.35,
+      lookTargetX: 0,
+      lookTargetY: -0.05,
+      pupilConstraintX: 0.6,
+      pupilConstraintY: 0.7
     },
     blinking: {
       type: 'sync',

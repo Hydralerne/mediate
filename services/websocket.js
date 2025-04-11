@@ -1,6 +1,5 @@
 import { getToken } from '../utils/token';
 import { handleAudioStreamStart, handleAudioStreamEnd, handleAudioChunk, handleAudioStreamFile } from './audioStream';
-
 class WebSocketService {
     constructor() {
         this.socket = null;
@@ -394,7 +393,7 @@ class WebSocketService {
             try {
                 listener.callback(data);
             } catch (error) {
-                console.error(`[WebSocketService] Error in ${event} listener:`, error);
+
             }
         }
     }

@@ -4,16 +4,39 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import colors from '../../../utils/colors';
 import TouchableButton from '../../../components/global/ButtonTap';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const WelcomeMessage = ({ username = 'there', onSuggestionPress }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [typingComplete, setTypingComplete] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [userInitialized, setUserInitialized] = useState(true);
+
 
   // Split message into two parts for better typography
   const greeting = `Hello, ${username}`;
-  const message = `I'm Oblien AI Assistant. How can I help you today?`;
-  const fullMessage = message;
+
+  useEffect(() => {
+    const getUserInitialized = async () => {
+      const userInitialized = await AsyncStorage.getItem('userInitialized');
+      setUserInitialized(userInitialized);
+      AsyncStorage.setItem('userInitialized', 'true');
+    }
+    getUserInitialized();
+  }, []);
+
+  const message = [
+    `Ask Oblien AI Assistant about anything you want`,
+    `Talk to Oblien AI Assistant to get started`,
+    `Oblien AI Assistant is here to help you`,
+    `Let's have a conversation about your project`,
+    `Let's make your dream website come true`,
+    `Ask Oblien AI Assistant to create a website for you`,
+    `Ask Oblien AI Assistant to help you with your project`,
+    `Ask Oblien AI Assistant about anything`,
+  ];
+
+  const fullMessage = userInitialized ? message[Math.floor(Math.random() * message.length)] : message[0];
 
   const typingInterval = useRef(null);
   const currentIndex = useRef(0);
@@ -168,7 +191,7 @@ const styles = StyleSheet.create({
 
   welcomeContainer: {
     alignItems: 'center',
-    marginTop: 350,
+    marginTop: 300,
     width: '100%',
     position: 'absolute',
     top: 0,
@@ -194,10 +217,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   greetingText: {
-    fontSize: 36,
-    fontWeight: 'bold',
+    fontSize: 34,
+    fontWeight: '300',
     color: colors.mainColor,
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
@@ -207,11 +230,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   welcomeMessage: {
-    fontSize: 24,
+    fontSize: 22,
     color: colors.mainColor,
     textAlign: 'center',
-    lineHeight: 34,
-    fontWeight: '400',
+    lineHeight: 28,
+    fontWeight: '300',
     opacity: 0.9,
   },
   cursorContainer: {

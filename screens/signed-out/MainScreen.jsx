@@ -49,14 +49,15 @@ const MainScreen = ({navigation}) => {
 };
 
 const VideoBack = () => {
-    const player = useVideoPlayer(require('../../assets/videos/final.mp4'), player => {
-        player.loop = true;
-        player.play();
-        player.muted = true
-    });
+    // const player = useVideoPlayer(require('../../assets/videos/final.mp4'), player => {
+    //     player.loop = true;
+    //     player.play();
+    //     player.muted = true
+    // });
 
     return (
-        <VideoView nativeControls={false} style={styles.video} player={player} allowsFullscreen />
+        <></>
+        // <VideoView nativeControls={false} style={styles.video} player={player} allowsFullscreen />
     )
 }
 

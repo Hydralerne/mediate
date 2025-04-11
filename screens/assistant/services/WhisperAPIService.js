@@ -3,6 +3,7 @@ import WebSocketService from '../../../services/websocket';
 class WhisperAPIService {
     constructor() {
         this.debugMode = false;
+        this.testMode = false;
         this.sessionId = null;
         this.listeners = {};
         this.finalizationTimeout = null;
@@ -35,7 +36,9 @@ class WhisperAPIService {
      * @returns {Promise<Object>} - Session details
      */
     async createSession(options) {
+       if(this.testMode) {
         return {success: true, sessionId: '123'};
+       }
         try {
             // First, clean up any existing session
             this._cleanupEventHandlers();
@@ -135,7 +138,9 @@ class WhisperAPIService {
      * @returns {Promise<boolean>} - Success status
      */
     async streamAudio(audioBuffer) {
-        return true;
+        if(this.testMode) {
+            return true;
+        }
         // Check for active session
         if (!this.sessionId) {
             if (this.debugMode) {
@@ -227,7 +232,7 @@ class WhisperAPIService {
      */
     async finalizeSession() {
         try {
-            if (!this.sessionId || true) {
+            if (!this.sessionId || this.testMode) {
                 return { success: false, error: 'No active transcription session' };
             }
             

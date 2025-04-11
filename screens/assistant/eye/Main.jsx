@@ -7,6 +7,7 @@ import { DEFAULT_CONFIG } from './EyeConfig';
 import { Animated } from 'react-native';
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 
+
 const Main = ({
   style,
   size = DEFAULT_CONFIG.eyeSize * 2.8,
@@ -82,7 +83,7 @@ const Main = ({
   }, [animation]);
 
   // Handle touch on eyes to look at touch point
-  const handleEyeAreaTouch = (event) => {
+  const handleEyeAreaTouch = (position) => {
     // const { locationX, locationY } = event.nativeEvent;
     // const centerX = size / 2;
     // const centerY = size * 0.25; // Approximate center Y of eyes
@@ -94,19 +95,37 @@ const Main = ({
     // Look at touch point
     // lookAt(normalizedX, normalizedY, { duration: 300 });
 
-    // Close both eyes immediately
-    Animated.parallel([
+    if (position === 'left') {
+      // Close left eye immediately
       Animated.timing(leftEyeAnimations.blinkAnim, {
         toValue: 0.05,
         duration: 100,
         useNativeDriver: true,
-      }),
+      }).start();
+    }
+    if (position === 'right') {
+      // Close right eye immediately
       Animated.timing(rightEyeAnimations.blinkAnim, {
         toValue: 0.05,
         duration: 100,
         useNativeDriver: true,
-      }),
-    ]).start();
+      }).start();
+    }
+    // Close both eyes immediately
+    if (position === 'both') {
+      Animated.parallel([
+        Animated.timing(leftEyeAnimations.blinkAnim, {
+          toValue: 0.05,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rightEyeAnimations.blinkAnim, {
+          toValue: 0.05,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
   };
 
   const handleEyeAreaTouchEnd = () => {
@@ -134,7 +153,7 @@ const Main = ({
       {/* Left eye */}
 
       <TouchableWithoutFeedback
-        onPressIn={handleEyeAreaTouch}
+        onPressIn={() => handleEyeAreaTouch('left')}
         onPressOut={handleEyeAreaTouchEnd}
       >
         <EyeRenderer
@@ -147,7 +166,7 @@ const Main = ({
       </TouchableWithoutFeedback>
       {/* Right eye */}
       <TouchableWithoutFeedback
-        onPressIn={handleEyeAreaTouch}
+        onPressIn={() => handleEyeAreaTouch('right')}
         onPressOut={handleEyeAreaTouchEnd}
       >
         <EyeRenderer
