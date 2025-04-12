@@ -130,8 +130,68 @@ const utils = {
       width: Dimensions.get('window').width,
       height: Dimensions.get('window').height
     };
+  },
+  
+  // Generate colors based on audio level and time
+  generateColors: (normalizedAudioLevel, time) => {
+    // Generate primary color that changes with audio level
+    // Higher audio = more vibrant colors
+    const hue1 = (time * 0.05) % 1.0;
+    const saturation1 = 0.5 + normalizedAudioLevel * 0.5;
+    const lightness1 = 0.3 + normalizedAudioLevel * 0.4;
+    
+    // Generate complementary color for secondary
+    const hue2 = (hue1 + 0.5) % 1.0; 
+    const saturation2 = 0.7 + normalizedAudioLevel * 0.3;
+    const lightness2 = 0.2 + normalizedAudioLevel * 0.2;
+    
+    // Convert HSL to RGB for primary color
+    const primaryColor = hslToRgb(hue1, saturation1, lightness1);
+    
+    // Convert HSL to RGB for secondary color
+    const secondaryColor = hslToRgb(hue2, saturation2, lightness2);
+    
+    // Calculate color mix based on audio level
+    // Higher audio = more dynamic mixing
+    const colorMix = 0.3 + normalizedAudioLevel * 0.7;
+    
+    return {
+      primaryColor,
+      secondaryColor,
+      colorMix
+    };
+  },
+  
+  // Convert HSL color values to RGB
+  // h, s, l values in range 0-1
+  hslToRgb: (h, s, l) => {
+    let r, g, b;
+
+    if (s === 0) {
+      r = g = b = l; // achromatic
+    } else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+
+    return { r, g, b };
   }
 };
+
+// Alias for the HSL to RGB function for easier access
+const hslToRgb = utils.hslToRgb;
 
 // Main touch movement simulation controller
 const createTouchSimulator = (refs) => {
@@ -245,13 +305,16 @@ const createTouchSimulator = (refs) => {
 
 
 // GL rendering setup and animation loop
-const createRenderer = (gl, touchPositionRef) => {
+const createRenderer = (gl, touchPositionRef, colorRefs) => {
         // Setup scene
         const scene = new THREE.Scene();
         const vMouseDamp = new THREE.Vector2();
         const vResolution = new THREE.Vector2();
-
-        const variation = 1;
+        const vPrimaryColor = new THREE.Vector3(1.0, 1.0, 1.0); // Default to white
+        const vSecondaryColor = new THREE.Vector3(0.0, 0.5, 1.0); // Default to blue
+        
+        // Start with variation 1 (will be dynamic later)
+        let variation = 1
 
         // Get dimensions
         const w = gl.drawingBufferWidth;
@@ -266,7 +329,7 @@ const createRenderer = (gl, touchPositionRef) => {
         renderer.setSize(w, h);
         renderer.setClearColor(0x000000, 0);
 
-  // Create geometry and material
+        // Create geometry and material
         const geo = new THREE.PlaneGeometry(3, 3);  // Scaled to cover full viewport
         const mat = new THREE.ShaderMaterial({
             vertexShader: /* glsl */`
@@ -279,7 +342,13 @@ const createRenderer = (gl, touchPositionRef) => {
             uniforms: {
                 u_mouse: { value: vMouseDamp },
                 u_resolution: { value: vResolution },
-                u_pixelRatio: { value: 2 }
+                u_pixelRatio: { value: 2 },
+                u_primaryColor: { value: vPrimaryColor },
+                u_secondaryColor: { value: vSecondaryColor },
+                u_colorMix: { value: 0.5 },
+                u_time: { value: 0.0 },
+                u_blurIntensity: { value: 0.5 },
+                u_effectIntensity: { value: 1.0 }
             },
             defines: {
                 VAR: variation
@@ -291,10 +360,12 @@ const createRenderer = (gl, touchPositionRef) => {
         scene.add(quad);
   
         // Camera position and orientation
-  camera.position.z = 1;
+        camera.position.z = 1;
 
-  // Animation loop for rendering
-  let time = 0, lastTime = 0;
+        // Animation loop for rendering
+        let time = 0, lastTime = 0;
+        let lastVariationChange = 0;
+        let currentVariation = variation;
 
         const update = () => {
             // calculate delta time
@@ -302,14 +373,60 @@ const createRenderer = (gl, touchPositionRef) => {
             const dt = time - lastTime;
             lastTime = time;
     
-    // Get current touch position from the ref
-    const currentTouch = touchPositionRef.current;
+            // Update time uniform
+            mat.uniforms.u_time.value = time;
+            
+            // Update color uniforms if refs are provided
+            if (colorRefs && colorRefs.primaryColorRef && colorRefs.primaryColorRef.current) {
+                const primaryColor = colorRefs.primaryColorRef.current;
+                vPrimaryColor.set(primaryColor.r, primaryColor.g, primaryColor.b);
+            }
+            
+            if (colorRefs && colorRefs.secondaryColorRef && colorRefs.secondaryColorRef.current) {
+                const secondaryColor = colorRefs.secondaryColorRef.current;
+                vSecondaryColor.set(secondaryColor.r, secondaryColor.g, secondaryColor.b);
+            }
+            
+            if (colorRefs && colorRefs.colorMixRef) {
+                mat.uniforms.u_colorMix.value = colorRefs.colorMixRef.current || 0.5;
+            }
+            
+            // Update blur and effect intensity if provided
+            if (colorRefs && colorRefs.blurIntensityRef) {
+                mat.uniforms.u_blurIntensity.value = colorRefs.blurIntensityRef.current || 0.5;
+            }
+            
+            if (colorRefs && colorRefs.effectIntensityRef) {
+                mat.uniforms.u_effectIntensity.value = colorRefs.effectIntensityRef.current || 1.0;
+            }
+            
+            // Update shader variation based on audio level with cooldown
+            if (colorRefs && colorRefs.audioLevelRef && time - lastVariationChange > 2.0) {
+                const audioLevel = colorRefs.audioLevelRef.current;
+                const normalizedAudio = utils.normalizeAudioLevel(audioLevel);
+                
+                // Only change variation on significant audio level changes
+                if (normalizedAudio > 0.8) {
+                    // Randomly switch between variations on high audio peaks
+                    const newVariation = Math.floor(Math.random() * 4); // 0-3
+                    
+                    if (newVariation !== currentVariation) {
+                        currentVariation = newVariation;
+                        mat.defines.VAR = currentVariation;
+                        mat.needsUpdate = true;
+                        lastVariationChange = time;
+                    }
+                }
+            }
     
-    // ease touch motion with damping
-    for (const k in currentTouch) {
-      if (k == 'x' || k == 'y') {
-        vMouseDamp[k] = THREE.MathUtils.damp(vMouseDamp[k], currentTouch[k], 8, dt);
-      }
+            // Get current touch position from the ref
+            const currentTouch = touchPositionRef.current;
+            
+            // ease touch motion with damping
+            for (const k in currentTouch) {
+                if (k == 'x' || k == 'y') {
+                    vMouseDamp[k] = THREE.MathUtils.damp(vMouseDamp[k], currentTouch[k], 8, dt);
+                }
             }
 
             // Update resolution if needed
@@ -327,11 +444,20 @@ const createRenderer = (gl, touchPositionRef) => {
             gl.endFrameEXP();
         };
   
-  return { update };
+        return { update };
 };
 
 // Main component
-const BlobScene = ({ audioLevel = 0, edgePoints = [] }) => {
+const BlobScene = ({ 
+  audioLevel = 0, 
+  edgePoints = [],
+  primaryColor = { r: 1.0, g: 1.0, b: 1.0 },
+  secondaryColor = { r: 0.0, g: 0.5, b: 1.0 },
+  colorMix = 0.5,
+  useCustomColors = false, // If true, use the provided colors; if false, generate dynamically
+  blurIntensity = 0.5,
+  effectIntensity = 1.0
+}) => {
   // Create refs to store state
   const touchPositionRef = useRef(new THREE.Vector2());
   const glRef = useRef(null);
@@ -348,6 +474,18 @@ const BlobScene = ({ audioLevel = 0, edgePoints = [] }) => {
   const audioLevelRef = useRef(audioLevel);
   const edgePointsRef = useRef(edgePoints);
   
+  // Flag for using custom colors vs. dynamic colors
+  const useCustomColorsRef = useRef(useCustomColors);
+  
+  // Color refs to update shader without re-rendering
+  const primaryColorRef = useRef(primaryColor);
+  const secondaryColorRef = useRef(secondaryColor);
+  const colorMixRef = useRef(colorMix);
+  
+  // Effect control refs
+  const blurIntensityRef = useRef(blurIntensity);
+  const effectIntensityRef = useRef(effectIntensity);
+  
   // Update refs when props change without causing re-renders
   useEffect(() => {
     audioLevelRef.current = audioLevel;
@@ -356,6 +494,38 @@ const BlobScene = ({ audioLevel = 0, edgePoints = [] }) => {
   useEffect(() => {
     edgePointsRef.current = edgePoints;
   }, [edgePoints]);
+  
+  // Update color refs when props change
+  useEffect(() => {
+    useCustomColorsRef.current = useCustomColors;
+  }, [useCustomColors]);
+  
+  useEffect(() => {
+    if (useCustomColorsRef.current) {
+      primaryColorRef.current = primaryColor;
+    }
+  }, [primaryColor, useCustomColors]);
+  
+  useEffect(() => {
+    if (useCustomColorsRef.current) {
+      secondaryColorRef.current = secondaryColor;
+    }
+  }, [secondaryColor, useCustomColors]);
+  
+  useEffect(() => {
+    if (useCustomColorsRef.current) {
+      colorMixRef.current = colorMix;
+    }
+  }, [colorMix, useCustomColors]);
+  
+  // Update effect control refs when props change
+  useEffect(() => {
+    blurIntensityRef.current = blurIntensity;
+  }, [blurIntensity]);
+  
+  useEffect(() => {
+    effectIntensityRef.current = effectIntensity;
+  }, [effectIntensity]);
 
   // Create touch simulator
   const touchSimulator = useRef(
@@ -400,8 +570,15 @@ const BlobScene = ({ audioLevel = 0, edgePoints = [] }) => {
   const onContextCreate = async (gl) => {
     glRef.current = gl;
     
-    // Create renderer
-    const renderer = createRenderer(gl, touchPositionRef);
+    // Create renderer with color refs and audio level
+    const renderer = createRenderer(gl, touchPositionRef, {
+      primaryColorRef,
+      secondaryColorRef,
+      colorMixRef,
+      audioLevelRef,
+      blurIntensityRef,
+      effectIntensityRef
+    });
     
     // Start animation timer - separated from the render loop
     // This ensures touch movement continues even if audio causes parent re-render
@@ -430,6 +607,26 @@ const BlobScene = ({ audioLevel = 0, edgePoints = [] }) => {
       // Get normalized audio level
       const rawAudio = audioLevelRef.current;
       const normalizedAudio = utils.normalizeAudioLevel(rawAudio);
+      
+      // Only generate dynamic colors if not using custom colors
+      if (!useCustomColorsRef.current) {
+        const time = performance.now() * 0.001;
+        const { primaryColor, secondaryColor, colorMix } = utils.generateColors(normalizedAudio, time);
+        
+        // Update color refs
+        primaryColorRef.current = primaryColor;
+        secondaryColorRef.current = secondaryColor;
+        colorMixRef.current = colorMix;
+      }
+      
+      // Update effect intensity based on audio level if in dynamic mode
+      if (!useCustomColorsRef.current) {
+        // Slightly increase blur intensity with audio level for more dynamic effect
+        blurIntensityRef.current = Math.min(1.0, 0.3 + normalizedAudio * 0.7);
+        
+        // Increase effect intensity with audio level
+        effectIntensityRef.current = Math.min(1.5, 0.6 + normalizedAudio * 0.9);
+      }
       
       // Simulate movement with parameters adjusted for desired behavior
       touchSimulator.simulate({
@@ -477,18 +674,18 @@ const BlobScene = ({ audioLevel = 0, edgePoints = [] }) => {
   }, []);
 
   // Render component
-    return (
+  return (
     <View 
       style={styles.container}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
     >
-            <GLView
-                style={styles.glView}
-                onContextCreate={onContextCreate}
-            />
-        </View>
-    );
+      <GLView
+        style={styles.glView}
+        onContextCreate={onContextCreate}
+      />
+    </View>
+  );
 };
 
 // Styles

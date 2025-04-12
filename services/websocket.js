@@ -1,5 +1,5 @@
 import { getToken } from '../utils/token';
-import { handleAudioStreamStart, handleAudioStreamEnd, handleAudioChunk, handleAudioStreamFile } from './audioStream';
+import { handleAudioStreamStart, handleAudioStreamEnd, handleAudioChunk, handleAudioStreamFiles } from './audioStream';
 class WebSocketService {
     constructor() {
         this.socket = null;
@@ -149,8 +149,8 @@ class WebSocketService {
                             return;
                         }
 
-                        if(messageType === 'audio_stream_file') {
-                            handleAudioStreamFile(response);
+                        if(messageType === 'audio_stream_files') {
+                            handleAudioStreamFiles(response);
                         }
                         // Handle audio stream events
                         if (messageType === 'audio_stream_start') {

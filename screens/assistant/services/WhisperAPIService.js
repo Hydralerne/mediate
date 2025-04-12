@@ -4,11 +4,11 @@ class WhisperAPIService {
     constructor() {
         this.debugMode = false;
         this.testMode = false;
-        this.sessionId = null;
         this.listeners = {};
         this.finalizationTimeout = null;
         this.eventHandlerIds = {}; // To track WebSocketService listener IDs
-        
+        this.audioSessionId = null;
+        this.sessionId = null;
         // Use the imported WebSocketService
         this.wsService = WebSocketService;
     }
@@ -18,6 +18,14 @@ class WhisperAPIService {
         this.wsService.setDebugMode(enabled);
     }
 
+    getSessionId() {
+        return this.sessionId;
+    }
+
+    setSessionId(sessionId) {
+        this.sessionId = sessionId;
+    }
+    
     /**
      * Set the authentication token for WebSocket connection
      * @param {string} token - Authentication token
@@ -37,7 +45,7 @@ class WhisperAPIService {
      */
     async createSession(options) {
        if(this.testMode) {
-        return {success: true, sessionId: '123'};
+        return {success: true, audioSessionId: '123'};
        }
         try {
             // First, clean up any existing session
@@ -66,8 +74,10 @@ class WhisperAPIService {
             return new Promise((resolve, reject) => {
                 // Setup response handlers one time for this session
                 const onInitialized = (response) => {
-                    this.sessionId = response.sessionId;
-                    
+                    this.audioSessionId = response.audioSessionId;
+                    if(!this.sessionId && response.sessionId) {
+                        this.sessionId = response.sessionId;
+                    }
                     // Remove the one-time handler
                     if (this.eventHandlerIds['audio:initialized']) {
                         this.wsService.off('audio:initialized', this.eventHandlerIds['audio:initialized']);
@@ -76,6 +86,7 @@ class WhisperAPIService {
                     
                     resolve({
                         success: true,
+                        audioSessionId: response.audioSessionId,
                         sessionId: response.sessionId,
                         format: response.format,
                         sampleRate: response.sampleRate
@@ -111,7 +122,9 @@ class WhisperAPIService {
                     type: "audio:init",
                     format: options.format || 'wav',
                     sampleRate: options.sampleRate || 16000,
-                    language: options.language || 'en'
+                    language: options.language || 'en',
+                    audioSessionId: this.audioSessionId,
+                    sessionId: this.sessionId
                 }).catch(error => {
                     // Clean up listeners if send fails
                     this._cleanupEventHandlers();
@@ -142,7 +155,7 @@ class WhisperAPIService {
             return true;
         }
         // Check for active session
-        if (!this.sessionId) {
+        if (!this.audioSessionId) {
             if (this.debugMode) {
                 console.warn('No active session for streaming audio');
             }
@@ -232,7 +245,7 @@ class WhisperAPIService {
      */
     async finalizeSession() {
         try {
-            if (!this.sessionId || this.testMode) {
+            if (!this.audioSessionId || this.testMode) {
                 return { success: false, error: 'No active transcription session' };
             }
             
@@ -276,7 +289,7 @@ class WhisperAPIService {
                         this.listeners.transcription = originalListener;
                         
                         // Clean up session
-                        this.sessionId = null;
+                        this.audioSessionId = null;
                         
                         resolve({
                             success: true,
@@ -362,7 +375,7 @@ class WhisperAPIService {
         
         // We no longer close the WebSocket here as it's managed by WebSocketService
         // Just clean up our local resources
-        this.sessionId = null;
+        this.audioSessionId = null;
     }
 }
 

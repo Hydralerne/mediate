@@ -22,7 +22,7 @@ class AudioStreamService {
                 shouldDuckAndroid: false,
                 playThroughEarpieceAndroid: false,
             });
-            
+
             this.soundObject = new Audio.Sound();
             this.initialized = true;
         } catch (error) {
@@ -51,37 +51,58 @@ class AudioStreamService {
         }
     }
 
-    async handleAudioStreamFile(data) {
-        const { audioKey } = data;
+    async handleAudioStreamFiles(response) {
+        const data = response.data;
 
+        if (!data || data.length === 0) return;
 
-        const fileUri = `https://api.oblien.com/ai/audio/${audioKey}`;
-        console.log('[AudioStreamService] Playing audio stream file:', fileUri);
+        // Queue of audio files to play
+        const audioQueue = data.map(item => item.audioKey);
+        let currentSound = null;
 
-        try {
-            await Audio.setAudioModeAsync({
-                allowsRecordingIOS: false,
-                playsInSilentModeIOS: true,
-                shouldDuckAndroid: true,
-                staysActiveInBackground: true,
-                playThroughEarpieceAndroid: false,
-        });
+        // Function to play the next audio in the queue
+        const playNextAudio = async () => {
+            if (audioQueue.length === 0) return;
+            
+            const audioKey = audioQueue.shift();
+            const fileUri = `https://api.oblien.com/ai/audio/${audioKey}`;
+            console.log('[AudioStreamService] Playing audio stream file:', fileUri);
 
-        const { sound } = await Audio.Sound.createAsync(
-            { uri: fileUri },
-            { shouldPlay: true }
-        );
+            try {
+                await Audio.setAudioModeAsync({
+                    allowsRecordingIOS: false,
+                    playsInSilentModeIOS: true,
+                    shouldDuckAndroid: true,
+                    staysActiveInBackground: true,
+                    playThroughEarpieceAndroid: false,
+                });
 
-        sound.playAsync();
+                const { sound } = await Audio.Sound.createAsync(
+                    { uri: fileUri },
+                    { shouldPlay: true }
+                );
 
-        sound.setOnPlaybackStatusUpdate((status) => {
-            if (status.didJustFinish) {
-                    console.log('audio stream file finished');
-                }
-            });
-        } catch (error) {
-            console.error('[AudioStreamService] Error playing audio stream file:', error);
-        }
+                currentSound = sound;
+                sound.playAsync();
+
+                sound.setOnPlaybackStatusUpdate((status) => {
+                    if (status.didJustFinish) {
+                        console.log('audio stream file finished');
+                        // Clean up current sound
+                        sound.unloadAsync();
+                        // Play the next audio in the queue
+                        setTimeout(() => playNextAudio(), 1000);
+                    }
+                });
+            } catch (error) {
+                console.error('[AudioStreamService] Error playing audio stream file:', error);
+                // Try to continue with next audio even if current one fails
+                playNextAudio();
+            }
+        };
+
+        // Start playing the first audio
+        playNextAudio();
     }
 
     async playCompleteAudio() {
@@ -89,11 +110,11 @@ class AudioStreamService {
             const combinedBuffer = this.combineArrayBuffers(this.audioBuffer);
             const base64Data = this.arrayBufferToBase64(combinedBuffer);
             const fileUri = `${FileSystem.cacheDirectory}complete-audio-${Date.now()}.wav`;
-            
-            await FileSystem.writeAsStringAsync(fileUri, base64Data, { 
-                encoding: FileSystem.EncodingType.Base64 
+
+            await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+                encoding: FileSystem.EncodingType.Base64
             });
-            
+
             await Audio.setAudioModeAsync({
                 allowsRecordingIOS: false,
                 playsInSilentModeIOS: true,
@@ -101,7 +122,7 @@ class AudioStreamService {
                 staysActiveInBackground: true,
                 playThroughEarpieceAndroid: false,
             });
-    
+
             const { sound } = await Audio.Sound.createAsync(
                 { uri: fileUri },
                 { shouldPlay: true }
@@ -112,10 +133,10 @@ class AudioStreamService {
             sound.setOnPlaybackStatusUpdate((status) => {
                 if (status.didJustFinish) {
                     FileSystem.deleteAsync(fileUri, { idempotent: true })
-                        .catch(() => {});
+                        .catch(() => { });
                 }
             });
-            
+
         } catch (error) {
             console.error('[AudioStreamService] Error playing complete audio:', error);
         } finally {
@@ -128,24 +149,24 @@ class AudioStreamService {
         let binary = '';
         const bytes = new Uint8Array(buffer);
         const len = bytes.byteLength;
-        
+
         for (let i = 0; i < len; i++) {
             binary += String.fromCharCode(bytes[i]);
         }
-        
+
         return btoa(binary);
     }
 
     combineArrayBuffers(buffers) {
         const totalLength = buffers.reduce((total, buffer) => total + buffer.byteLength, 0);
         const combinedBuffer = new Uint8Array(totalLength);
-        
+
         let offset = 0;
         for (const buffer of buffers) {
             combinedBuffer.set(new Uint8Array(buffer), offset);
             offset += buffer.byteLength;
         }
-        
+
         return combinedBuffer.buffer;
     }
 }
@@ -161,4 +182,4 @@ export default audioStreamService;
 export const handleAudioStreamStart = audioStreamService.handleAudioStreamStart.bind(audioStreamService);
 export const handleAudioChunk = audioStreamService.handleAudioChunk.bind(audioStreamService);
 export const handleAudioStreamEnd = audioStreamService.handleAudioStreamEnd.bind(audioStreamService);
-export const handleAudioStreamFile = audioStreamService.handleAudioStreamFile.bind(audioStreamService);
+export const handleAudioStreamFiles = audioStreamService.handleAudioStreamFiles.bind(audioStreamService);

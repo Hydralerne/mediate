@@ -36,7 +36,6 @@ class AudioStreamService {
         this.lastPosition = WAV_HEADER_SKIP_BYTES; // Start reading *after* WAV header
         this.fixedChunkSize = 32768; // Send 32KB of raw PCM data per chunk (~1s at 16kHz/16bit/mono)
         this.chunkSequence = 0; // Sequence number for the custom header
-        
         // Callbacks
         this.onTranscriptionCallback = null;
         this.onSpeechEndCallback = null;

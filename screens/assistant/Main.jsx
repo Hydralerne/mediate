@@ -30,10 +30,11 @@ const Main = ({ navigation }) => {
   const textInputRef = useRef(null);
   const contentHeight = useRef(0);
   const insets = useSafeAreaInsets();
-  
+  const [sessionId, setSessionId] = useState(null);
+
   // Add a ref to track if callbacks have been initialized
   const callbacksInitializedRef = useRef(false);
-  
+
   // Create stable callback functions using useCallback
   const handleLiveTranscriptionCallback = useRef((data, isFinal) => {
     // NOT USED NOW AS  WE ARE USING THE URL TO GET THE TRANSCRIPTION
@@ -62,27 +63,27 @@ const Main = ({ navigation }) => {
       }
     }
   }).current;
-  
+
   const handleErrorCallback = useRef((message) => {
     setIsRecording(false);
     setIsProcessing(false);
     setIsTranscribing(false);
     Alert.alert('Error', message);
   }).current;
-  
+
   const handleSpeechEndCallback = useRef(() => {
     setIsProcessing(false);
   }).current;
-  
+
   const handleMeteringUpdateCallback = useRef((data) => {
     console.log('data', data.level);
     setAudioLevel(data.level);
   }).current;
-  
+
   const handleWebSocketMessageCallback = useRef((response) => {
     // Handle the event data
     const data = response?.data;
-    if(!data) return;
+    if (!data) return;
     if (data?.trigger?.name == 'perviewWebsite') {
       navigation.navigate('WebsitePreview', { websiteDomain: data?.trigger?.data?.url });
     }
@@ -126,7 +127,7 @@ const Main = ({ navigation }) => {
       callbacksInitializedRef.current = true;
     }
 
-    AudioStreamService.setAudioFormat('wav'); // Use WAV format for better quality
+    AudioStreamService.setAudioFormat('wav');
 
     return () => {
       // Clean up
