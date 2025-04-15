@@ -43,7 +43,7 @@ class WhisperAPIService {
      * @param {string} options.authToken - Authentication token (optional)
      * @returns {Promise<Object>} - Session details
      */
-    async createSession(options) {
+    async createSession(options) { 
        if(this.testMode) {
         return {success: true, audioSessionId: '123'};
        }

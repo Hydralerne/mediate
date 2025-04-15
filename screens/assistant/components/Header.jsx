@@ -1,10 +1,18 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import TintBlur from '../../../components/global/TintBlur';
 // import Eye from '../eye/Main';
 const Header = () => {
     const insets = useSafeAreaInsets()
     return (
         <View style={[styles.header, { paddingTop: insets.top }]}>
+            <TintBlur
+                direction="top"
+                locations={[0.25, 0]}
+                intensity={30}
+                tint="dark"
+                style={{ height: 150 }}
+            />
             <TouchableOpacity style={styles.backIconContainer} onPress={() => { }}>
                 <Image source={require('../../../assets/icons/home/chevron left-8-1696832126.png')} style={styles.backIcon} />
             </TouchableOpacity>
@@ -37,7 +45,7 @@ const styles = StyleSheet.create({
         tintColor: 'white',
     },
     backIconContainer: {
-        left: 10,
+        left: 15,
         width: 40,
         height: 40,
         justifyContent: 'center',
@@ -45,7 +53,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         marginTop: 65,
         top: 0,
-        marginLeft: 20,
     },
     settings: {
         position: 'absolute',

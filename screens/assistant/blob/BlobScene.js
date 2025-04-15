@@ -1,451 +1,11 @@
-import React, { useRef, useEffect } from 'react';
-import { StyleSheet, View, Dimensions } from 'react-native';
+import React, { useRef, useEffect, memo } from 'react';
+import { StyleSheet, TouchableWithoutFeedback, View } from 'react-native';
 import { GLView } from 'expo-gl';
-import { Renderer } from 'expo-three';
 import * as THREE from 'three';
 
-import fragmentShader from './shaders/fragmentShader.js';
+import { createRenderer } from './render.js';
+import { normalizeAudioLevel, PATTERNS, getWindowDimensions, generateColors, createTouchSimulator } from './utils.js';
 
-// Animation patterns
-const PATTERNS = {
-  CIRCULAR: 'circular',
-  WAVE: 'wave',
-  RANDOM: 'random',
-  SPIRAL: 'spiral'
-};
-
-// Animation functions for different patterns
-const animationPatterns = {
-  // Simple circular motion
-  [PATTERNS.CIRCULAR]: (params) => {
-    const { centerX, centerY, angle, baseR, maxRadiusPercent } = params;
-    const x = centerX + Math.cos(angle) * (baseR * maxRadiusPercent);
-    const y = centerY + Math.sin(angle) * (baseR * maxRadiusPercent);
-    return { x, y };
-  },
-
-  // Wavy circular motion
-  [PATTERNS.WAVE]: (params) => {
-    const { centerX, centerY, angle, baseR, maxRadius, waveFrequency, waveAmplitude, audioFactor } = params;
-    const waveOffset = Math.sin(angle * waveFrequency) * waveAmplitude * audioFactor;
-    const x = centerX + Math.cos(angle) * Math.min(baseR + waveOffset, maxRadius);
-    const y = centerY + Math.sin(angle) * Math.min(baseR + waveOffset, maxRadius);
-    return { x, y };
-  },
-
-  // Random movement with coherence
-  [PATTERNS.RANDOM]: (params) => {
-    const { 
-      centerX, centerY, angle, baseR, maxRadius, randomness, normalizedAudioLevel,
-      currentRadius, updateRadius, updateAngle
-    } = params;
-    
-    // Scale randomness by audio level - more contained at low levels
-    const scaledRandomness = randomness * (0.2 + normalizedAudioLevel * 0.8);
-    
-    // Add some randomness to angle and radius
-    const randomAngleOffset = (Math.random() * 2 - 1) * scaledRandomness * Math.PI;
-    const randomRadiusOffset = (Math.random() * 2 - 1) * scaledRandomness * baseR;
-    
-    // Update angle
-    updateAngle(randomAngleOffset);
-    
-    // Update radius with audio-based constraints
-    const newRadius = currentRadius + randomRadiusOffset;
-    updateRadius(Math.max(10, Math.min(newRadius, maxRadius)));
-    
-    // Calculate position with the constrained radius
-    let x = centerX + Math.cos(angle) * currentRadius;
-    let y = centerY + Math.sin(angle) * currentRadius;
-    
-    // Add stronger pull toward center when audio is low
-    if (normalizedAudioLevel < 0.9) {
-      const centerPull = 1 - normalizedAudioLevel;
-      x = x * (1 - centerPull * 0.3) + centerX * (centerPull * 0.3);
-      y = y * (1 - centerPull * 0.3) + centerY * (centerPull * 0.3);
-    }
-    
-    return { x, y };
-  },
-
-  // Expanding/contracting spiral
-  [PATTERNS.SPIRAL]: (params) => {
-    const { 
-      centerX, centerY, angle, baseR, maxRadius, spiralExpansion,
-      deltaTime, normalizedAudioLevel, currentRadius, updateRadius
-    } = params;
-    
-    // Update radius for spiral, constrained by max radius
-    const newSpiralRadius = currentRadius + 
-      spiralExpansion * baseR * deltaTime * (1 + normalizedAudioLevel * 5);
-    
-    // Constrain spiral radius by audio level
-    updateRadius(Math.min(newSpiralRadius, maxRadius));
-    
-    // Reset spiral when it gets too large
-    if (currentRadius > maxRadius * 0.95) {
-      updateRadius(10);
-    }
-    
-    const x = centerX + Math.cos(angle) * currentRadius;
-    const y = centerY + Math.sin(angle) * currentRadius;
-    
-    return { x, y };
-  }
-};
-
-// Utility functions
-const utils = {
-  // Normalize audio level to 0-1 scale based on min-max range
-  normalizeAudioLevel: (audioLevel) => {
-    return Math.max(0, Math.min(1, (audioLevel - 0.7) / 0.45));
-  },
-  
-  // Apply edge point influence based on angle
-  applyEdgePointInfluence: (position, edgePoints, angle, normalizedAudioLevel) => {
-    if (edgePoints.length === 0 || normalizedAudioLevel <= 0.7) {
-      return position;
-    }
-    
-    // Find the closest edge point based on current angle
-    const sectorSize = Math.PI * 2 / edgePoints.length;
-    const sectorIndex = Math.floor((angle % (Math.PI * 2)) / sectorSize);
-    const edgePoint = edgePoints[sectorIndex % edgePoints.length];
-    
-    if (!edgePoint) {
-      return position;
-    }
-    
-    // Apply influence from the edge point - stronger at high audio levels
-    const influenceFactor = Math.max(0, (normalizedAudioLevel - 0.7) * 2) * 0.3;
-    position.x += (edgePoint.x - position.x) * influenceFactor;
-    position.y += (edgePoint.y - position.y) * influenceFactor;
-    
-    return position;
-  },
-  
-  // Get window dimensions
-  getWindowDimensions: () => {
-    return {
-      width: Dimensions.get('window').width,
-      height: Dimensions.get('window').height
-    };
-  },
-  
-  // Generate colors based on audio level and time
-  generateColors: (normalizedAudioLevel, time) => {
-    // Generate primary color that changes with audio level
-    // Higher audio = more vibrant colors
-    const hue1 = (time * 0.05) % 1.0;
-    const saturation1 = 0.5 + normalizedAudioLevel * 0.5;
-    const lightness1 = 0.3 + normalizedAudioLevel * 0.4;
-    
-    // Generate complementary color for secondary
-    const hue2 = (hue1 + 0.5) % 1.0; 
-    const saturation2 = 0.7 + normalizedAudioLevel * 0.3;
-    const lightness2 = 0.2 + normalizedAudioLevel * 0.2;
-    
-    // Convert HSL to RGB for primary color
-    const primaryColor = hslToRgb(hue1, saturation1, lightness1);
-    
-    // Convert HSL to RGB for secondary color
-    const secondaryColor = hslToRgb(hue2, saturation2, lightness2);
-    
-    // Calculate color mix based on audio level
-    // Higher audio = more dynamic mixing
-    const colorMix = 0.3 + normalizedAudioLevel * 0.7;
-    
-    return {
-      primaryColor,
-      secondaryColor,
-      colorMix
-    };
-  },
-  
-  // Convert HSL color values to RGB
-  // h, s, l values in range 0-1
-  hslToRgb: (h, s, l) => {
-    let r, g, b;
-
-    if (s === 0) {
-      r = g = b = l; // achromatic
-    } else {
-      const hue2rgb = (p, q, t) => {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1/6) return p + (q - p) * 6 * t;
-        if (t < 1/2) return q;
-        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-        return p;
-      };
-
-      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-      const p = 2 * l - q;
-      r = hue2rgb(p, q, h + 1/3);
-      g = hue2rgb(p, q, h);
-      b = hue2rgb(p, q, h - 1/3);
-    }
-
-    return { r, g, b };
-  }
-};
-
-// Alias for the HSL to RGB function for easier access
-const hslToRgb = utils.hslToRgb;
-
-// Main touch movement simulation controller
-const createTouchSimulator = (refs) => {
-  const {
-    touchPositionRef,
-    animationStateRef,
-    audioLevelRef,
-    edgePointsRef,
-    lastUpdateTimeRef
-  } = refs;
-  
-  return {
-    // Main simulation function
-    simulate: (params = {}) => {
-      // Get current audio level from ref and normalize
-      const rawAudioLevel = audioLevelRef.current;
-      const normalizedAudioLevel = utils.normalizeAudioLevel(rawAudioLevel);
-      
-      const {
-        centerX = Dimensions.get('window').width / 2,
-        centerY = Dimensions.get('window').height / 2,
-        baseRadius = 100,
-        radiusMultiplier = 1.5,
-        speed = 5.0,
-        pattern = PATTERNS.RANDOM,
-        waveAmplitude = 50,
-        waveFrequency = 2,
-        randomness = 0.3,
-        spiralExpansion = 0.05
-      } = params;
-
-      // Store center position in animation state
-      animationStateRef.current.centerX = centerX;
-      animationStateRef.current.centerY = centerY;
-
-      // Get current time for animation
-      const now = performance.now();
-      const deltaTime = (now - lastUpdateTimeRef.current) / 1000; // in seconds
-      lastUpdateTimeRef.current = now;
-
-      // Increase the effective speed significantly
-      const effectiveSpeed = speed * 3;
-      
-      // Update animation angle with faster speed
-      animationStateRef.current.angle += effectiveSpeed * deltaTime;
-      
-      // Calculate radius based on normalized audio level
-      // Constrain the radius more when audio level is low
-      const audioFactor = normalizedAudioLevel >= 0.9 ? radiusMultiplier * 2 : 
-                         (0.2 + normalizedAudioLevel * 0.8) * radiusMultiplier;
-      const maxRadiusPercent = normalizedAudioLevel >= 0.9 ? 1.0 : 
-                              0.2 + (normalizedAudioLevel * 0.8);
-      const baseR = baseRadius * audioFactor;
-      
-      // The maximum allowed radius - only reach edges on high audio
-      const maxRadius = baseRadius * maxRadiusPercent;
-      
-      // Initialize radius if needed
-      if (!animationStateRef.current.radius) {
-        animationStateRef.current.radius = baseR * 0.3; // Start closer to center
-      }
-      
-      // Helper functions for pattern handlers
-      const updateRadius = (newRadius) => {
-        animationStateRef.current.radius = newRadius;
-      };
-      
-      const updateAngle = (angleOffset) => {
-        animationStateRef.current.angle += angleOffset;
-      };
-      
-      // Create common parameters for pattern functions
-      const patternParams = {
-        centerX,
-        centerY,
-        angle: animationStateRef.current.angle,
-        baseR,
-        maxRadius,
-        maxRadiusPercent,
-        waveFrequency,
-        waveAmplitude,
-        audioFactor,
-        normalizedAudioLevel,
-        randomness,
-        spiralExpansion,
-        deltaTime,
-        currentRadius: animationStateRef.current.radius,
-        updateRadius,
-        updateAngle
-      };
-      
-      // Get the appropriate animation pattern function
-      const patternFunction = animationPatterns[pattern] || animationPatterns[PATTERNS.RANDOM];
-      
-      // Calculate position using the selected pattern
-      let position = patternFunction(patternParams);
-      
-      // Apply edge point influence
-      position = utils.applyEdgePointInfluence(
-        position, 
-        edgePointsRef.current, 
-        animationStateRef.current.angle, 
-        normalizedAudioLevel
-      );
-
-      // Update the touch position ref
-      touchPositionRef.current.set(position.x, position.y);
-    }
-  };
-};
-
-
-// GL rendering setup and animation loop
-const createRenderer = (gl, touchPositionRef, colorRefs) => {
-        // Setup scene
-        const scene = new THREE.Scene();
-        const vMouseDamp = new THREE.Vector2();
-        const vResolution = new THREE.Vector2();
-        const vPrimaryColor = new THREE.Vector3(1.0, 1.0, 1.0); // Default to white
-        const vSecondaryColor = new THREE.Vector3(0.0, 0.5, 1.0); // Default to blue
-        
-        // Start with variation 1 (will be dynamic later)
-        let variation = 1
-
-        // Get dimensions
-        const w = gl.drawingBufferWidth;
-        const h = gl.drawingBufferHeight;
-
-        vResolution.set(w, h);
-
-        const aspect = w / h;
-        const camera = new THREE.OrthographicCamera(-aspect, aspect, 1, -1, 0.1, 1000);
-
-        const renderer = new Renderer({ gl });
-        renderer.setSize(w, h);
-        renderer.setClearColor(0x000000, 0);
-
-        // Create geometry and material
-        const geo = new THREE.PlaneGeometry(3, 3);  // Scaled to cover full viewport
-        const mat = new THREE.ShaderMaterial({
-            vertexShader: /* glsl */`
-                varying vec2 v_texcoord;
-                void main() {
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    v_texcoord = uv;
-                }`,
-            fragmentShader, // most of the action happening in the fragment
-            uniforms: {
-                u_mouse: { value: vMouseDamp },
-                u_resolution: { value: vResolution },
-                u_pixelRatio: { value: 2 },
-                u_primaryColor: { value: vPrimaryColor },
-                u_secondaryColor: { value: vSecondaryColor },
-                u_colorMix: { value: 0.5 },
-                u_time: { value: 0.0 },
-                u_blurIntensity: { value: 0.5 },
-                u_effectIntensity: { value: 1.0 }
-            },
-            defines: {
-                VAR: variation
-            }
-        });
-
-        // Mesh creation
-        const quad = new THREE.Mesh(geo, mat);
-        scene.add(quad);
-  
-        // Camera position and orientation
-        camera.position.z = 1;
-
-        // Animation loop for rendering
-        let time = 0, lastTime = 0;
-        let lastVariationChange = 0;
-        let currentVariation = variation;
-
-        const update = () => {
-            // calculate delta time
-            time = performance.now() * 0.001;
-            const dt = time - lastTime;
-            lastTime = time;
-    
-            // Update time uniform
-            mat.uniforms.u_time.value = time;
-            
-            // Update color uniforms if refs are provided
-            if (colorRefs && colorRefs.primaryColorRef && colorRefs.primaryColorRef.current) {
-                const primaryColor = colorRefs.primaryColorRef.current;
-                vPrimaryColor.set(primaryColor.r, primaryColor.g, primaryColor.b);
-            }
-            
-            if (colorRefs && colorRefs.secondaryColorRef && colorRefs.secondaryColorRef.current) {
-                const secondaryColor = colorRefs.secondaryColorRef.current;
-                vSecondaryColor.set(secondaryColor.r, secondaryColor.g, secondaryColor.b);
-            }
-            
-            if (colorRefs && colorRefs.colorMixRef) {
-                mat.uniforms.u_colorMix.value = colorRefs.colorMixRef.current || 0.5;
-            }
-            
-            // Update blur and effect intensity if provided
-            if (colorRefs && colorRefs.blurIntensityRef) {
-                mat.uniforms.u_blurIntensity.value = colorRefs.blurIntensityRef.current || 0.5;
-            }
-            
-            if (colorRefs && colorRefs.effectIntensityRef) {
-                mat.uniforms.u_effectIntensity.value = colorRefs.effectIntensityRef.current || 1.0;
-            }
-            
-            // Update shader variation based on audio level with cooldown
-            if (colorRefs && colorRefs.audioLevelRef && time - lastVariationChange > 2.0) {
-                const audioLevel = colorRefs.audioLevelRef.current;
-                const normalizedAudio = utils.normalizeAudioLevel(audioLevel);
-                
-                // Only change variation on significant audio level changes
-                if (normalizedAudio > 0.8) {
-                    // Randomly switch between variations on high audio peaks
-                    const newVariation = Math.floor(Math.random() * 4); // 0-3
-                    
-                    if (newVariation !== currentVariation) {
-                        currentVariation = newVariation;
-                        mat.defines.VAR = currentVariation;
-                        mat.needsUpdate = true;
-                        lastVariationChange = time;
-                    }
-                }
-            }
-    
-            // Get current touch position from the ref
-            const currentTouch = touchPositionRef.current;
-            
-            // ease touch motion with damping
-            for (const k in currentTouch) {
-                if (k == 'x' || k == 'y') {
-                    vMouseDamp[k] = THREE.MathUtils.damp(vMouseDamp[k], currentTouch[k], 8, dt);
-                }
-            }
-
-            // Update resolution if needed
-            if (w !== gl.drawingBufferWidth || h !== gl.drawingBufferHeight) {
-                const newW = gl.drawingBufferWidth;
-                const newH = gl.drawingBufferHeight;
-                vResolution.set(newW, newH);
-                renderer.setSize(newW, newH);
-            }
-
-            // render scene
-            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-            renderer.render(scene, camera);
-            gl.flush();
-            gl.endFrameEXP();
-        };
-  
-        return { update };
-};
 
 // Main component
 const BlobScene = ({ 
@@ -456,7 +16,8 @@ const BlobScene = ({
   colorMix = 0.5,
   useCustomColors = false, // If true, use the provided colors; if false, generate dynamically
   blurIntensity = 0.5,
-  effectIntensity = 1.0
+  effectIntensity = 1.0,
+  variationRef
 }) => {
   // Create refs to store state
   const touchPositionRef = useRef(new THREE.Vector2());
@@ -577,12 +138,13 @@ const BlobScene = ({
       colorMixRef,
       audioLevelRef,
       blurIntensityRef,
-      effectIntensityRef
+      effectIntensityRef,
+      variationRef
     });
     
     // Start animation timer - separated from the render loop
     // This ensures touch movement continues even if audio causes parent re-render
-    const { width: windowWidth, height: windowHeight } = utils.getWindowDimensions();
+    const { width: windowWidth, height: windowHeight } = getWindowDimensions();
     
     // Initialize center if not already set
     if (!animationStateRef.current.centerX) {
@@ -601,17 +163,22 @@ const BlobScene = ({
       if (audioLevel > 0.2) return PATTERNS.RANDOM;
       return PATTERNS.RANDOM;
     };
-    
-    // Set up animation loops
+
+    // Set up animation loops with performance optimizations
     const simulationTimer = setInterval(() => {
+      // Check if component is still mounted via a ref
+      if (!glRef.current) {
+        clearInterval(simulationTimer);
+        return;
+      }
+      
       // Get normalized audio level
       const rawAudio = audioLevelRef.current;
-      const normalizedAudio = utils.normalizeAudioLevel(rawAudio);
-      
+      const normalizedAudio = normalizeAudioLevel(rawAudio);
       // Only generate dynamic colors if not using custom colors
       if (!useCustomColorsRef.current) {
         const time = performance.now() * 0.001;
-        const { primaryColor, secondaryColor, colorMix } = utils.generateColors(normalizedAudio, time);
+        const { primaryColor, secondaryColor, colorMix } = generateColors(normalizedAudio, time);
         
         // Update color refs
         primaryColorRef.current = primaryColor;
@@ -641,21 +208,47 @@ const BlobScene = ({
         randomness: 0.3 + normalizedAudio * 0.7, // More randomness at higher audio
         spiralExpansion: 0.05 + normalizedAudio * 0.2
       });
-    }, 10); // ~100fps for smoother animation
+    }, 100); // 60fps instead of 100fps for better performance
     
-    // Render loop
-    const renderFrame = () => {
-      renderer.update();
-      return requestAnimationFrame(renderFrame);
+    // More efficient render loop with frame limiting
+    let lastRenderTime = 0;
+    const targetFrameTime = 1000 / 60; // 60 FPS
+    let animationFrameId = null;
+
+    const renderFrame = (timestamp) => {
+      // Early exit if component unmounted
+      if (!glRef.current) {
+        return;
+      }
+      
+      // Calculate elapsed time since last render
+      const elapsed = timestamp - lastRenderTime;
+      
+      // Only render if enough time has passed (frame limiting)
+      if (elapsed >= targetFrameTime) {
+        // Adjust for dropped frames by aligning to frame boundaries
+        lastRenderTime = timestamp - (elapsed % targetFrameTime);
+        
+        // Perform the render
+        if (renderer && typeof renderer.update === 'function') {
+          renderer.update();
+        }
+      }
+      
+      // Schedule next frame *after* processing - safer, cleaner approach
+      animationFrameId = requestAnimationFrame(renderFrame);
+      requestRef.current.animationFrame = animationFrameId;
     };
-    
-    // Start the loops
-    const animationFrame = renderFrame();
-    
-    // Store timers in a ref so they can be cleaned up even if component re-renders
+
+    // Start the render loop
+    animationFrameId = requestAnimationFrame(renderFrame);
+
+    // Store references for cleanup
     requestRef.current = { 
       simulationTimer,
-      animationFrame
+      animationFrame: animationFrameId,
+      renderer, // Store renderer for proper disposal
+      gl // Store GL context for proper cleanup
     };
   };
 
@@ -663,11 +256,76 @@ const BlobScene = ({
   useEffect(() => {
     return () => {
       if (requestRef.current) {
+        // Cancel animation frame if it exists
         if (requestRef.current.animationFrame) {
           cancelAnimationFrame(requestRef.current.animationFrame);
         }
+        
+        // Clear the simulation timer
         if (requestRef.current.simulationTimer) {
           clearInterval(requestRef.current.simulationTimer);
+        }
+        
+        // Proper THREE.js and WebGL cleanup
+        if (requestRef.current.renderer) {
+          const { renderer, gl } = requestRef.current;
+          
+          try {
+            // Get all materials from the scene
+            const materials = [];
+            const textures = [];
+            
+            // Find and collect all scene objects that need disposal
+            if (renderer.scene && typeof renderer.scene.traverse === 'function') {
+              renderer.scene.traverse((object) => {
+              if (object.material) {
+                if (Array.isArray(object.material)) {
+                  object.material.forEach(material => materials.push(material));
+                } else {
+                  materials.push(object.material);
+                }
+              }
+              
+              // Dispose of geometry
+              if (object.geometry) {
+                object.geometry.dispose();
+              }
+            });
+            }
+            
+            // Dispose materials and their textures
+            materials.forEach(material => {
+              if (material.map) textures.push(material.map);
+              if (material.lightMap) textures.push(material.lightMap);
+              if (material.bumpMap) textures.push(material.bumpMap);
+              if (material.normalMap) textures.push(material.normalMap);
+              if (material.specularMap) textures.push(material.specularMap);
+              if (material.envMap) textures.push(material.envMap);
+              
+              material.dispose();
+            });
+            
+            // Dispose textures
+            textures.forEach(texture => {
+              if (texture && typeof texture.dispose === 'function') {
+              texture.dispose();
+              }
+            });
+
+            if(typeof renderer === 'function') {
+              renderer.dispose();
+            }
+
+            gl.flush();
+            
+            // Explicitly clear the reference
+            glRef.current = null;
+            requestRef.current = null;
+
+            console.log('glunmount');
+          } catch (e) {
+            console.log('Error during cleanup:', e);
+          }
         }
       }
     };
@@ -677,8 +335,8 @@ const BlobScene = ({
   return (
     <View 
       style={styles.container}
-      onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
+      onTouchStart={handleTouchStart}
     >
       <GLView
         style={styles.glView}
@@ -703,4 +361,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default BlobScene;
+export default memo(BlobScene);

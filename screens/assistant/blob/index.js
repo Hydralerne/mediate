@@ -1,19 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { StyleSheet, View, Animated } from 'react-native';
 import BlobScene from './BlobScene';
 
-const Blob = ({ audioLevel = 0 }) => {
-  const [isInteracting, setIsInteracting] = useState(false);
+const Blob = ({ audioLevel = 0, variationRef }) => {
   const [currentAudioLevel, setCurrentAudioLevel] = useState(audioLevel);
   const audioLevelRef = useRef(new Animated.Value(audioLevel)).current;
-  
+
   // Smooth audio transitions for more natural response
   useEffect(() => {
     // Create target audio level based on interaction state
-    const targetLevel = isInteracting 
-      ? Math.min(1, audioLevel * 2.5 + 0.3) 
-      : audioLevel;
-    
+    const targetLevel = audioLevel;
+
     // Animate to the new level with spring physics for more organic feel
     Animated.spring(audioLevelRef, {
       toValue: targetLevel,
@@ -21,22 +18,22 @@ const Blob = ({ audioLevel = 0 }) => {
       tension: 55,
       useNativeDriver: false,
     }).start();
-    
+
     // Set up value listener to update state
     const listener = audioLevelRef.addListener(({ value }) => {
       setCurrentAudioLevel(value);
     });
-    
+
     // Cleanup listener
     return () => {
       audioLevelRef.removeListener(listener);
     };
-  }, [audioLevel, isInteracting, audioLevelRef]);
+  }, [audioLevel, audioLevelRef]);
 
   return (
     <View style={styles.container}>
       <View style={styles.blobContainer}>
-          <BlobScene audioLevel={currentAudioLevel} />
+        <BlobScene audioLevel={currentAudioLevel} variationRef={variationRef} />
       </View>
     </View>
   );
@@ -60,4 +57,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default Blob; 
+export default memo(Blob); 

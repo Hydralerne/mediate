@@ -76,7 +76,7 @@ const WebsitePreview = ({ route, navigation }) => {
         `;
         
         // Execute the script
-        webViewRef.current.injectJavaScript(injectionScript);
+        // webViewRef.current.injectJavaScript(injectionScript);
     };
 
     // Handle the onLoad event

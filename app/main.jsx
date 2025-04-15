@@ -76,7 +76,7 @@ const Main = () => {
             }}>
             <StatusBar style={'light'} translucent backgroundColor="transparent" />
             {
-                isLogedIn ?
+                isLogedIn || true ?
                     <RootNavigator />
                     :
                     <SignedOutNavigator />

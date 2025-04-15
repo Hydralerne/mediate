@@ -162,23 +162,7 @@ class AudioRecorder {
             this.recording = null;
         }
     }
-
-    async getMetering(setMetering) {
-        if(this.interval) {
-            clearInterval(this.interval);
-        }
-        this.interval = setInterval(async () => {
-            try {
-                const status = await this.recording.getStatusAsync();
-                if (status.metering) {
-                    setMetering(prev => [...prev.slice(-30), status.metering]);
-                }
-            } catch (e) {
-                console.warn('Error reading metering:', e);
-            }
-        }, 500);
-    }
-
+    
     async getAudioFile() {
         if (!this.recording) return null;
 

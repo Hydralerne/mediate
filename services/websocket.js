@@ -1,5 +1,6 @@
 import { getToken } from '../utils/token';
-import { handleAudioStreamStart, handleAudioStreamEnd, handleAudioChunk, handleAudioStreamFiles } from './audioStream';
+import { handleAudioStreamStart, handleAudioStreamEnd, handleAudioChunk, handleAudioStreamFiles, updateMetering, updateAudioCaptions } from '../screens/assistant/services/audioStream';
+
 class WebSocketService {
     constructor() {
         this.socket = null;
@@ -172,6 +173,22 @@ class WebSocketService {
                             
                             this.isAudioStreamActive = false;
                             this.currentAudioSession = null;
+                        }
+
+                        if (messageType === 'update_audio_levels') {
+                            try {
+                                updateMetering(response);
+                            } catch (error) {
+                                console.error('[WebSocketService] Error in updateAudioMeterData:', error);
+                            }
+                        }
+
+                        if (messageType === 'update_audio_captions') {
+                            try {
+                                updateAudioCaptions(response);
+                            } catch (error) {
+                                console.error('[WebSocketService] Error in updateAudioCaptions:', error);
+                            }
                         }
 
                         if (this.eventListeners[messageType]) {

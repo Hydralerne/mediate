@@ -1,16 +1,9 @@
-import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
-import { Platform } from 'react-native';
 import WhisperAPIService from './WhisperAPIService';
 import AudioMeteringService from './AudioMeteringService';
-
+import { Buffer } from 'buffer';
 // Import only what we need
 import AudioRecorder from './AudioRecorder';
-
-// Polyfill Buffer if needed
-if (typeof Buffer === 'undefined') {
-    global.Buffer = require('buffer').Buffer;
-}
 
 // Constants for the custom binary header
 const HEADER_SIZE = 17;
@@ -21,9 +14,6 @@ class AudioStreamService {
     constructor() {
         // Initialize recorder
         this.recorder = new AudioRecorder(); 
-        
-        // Initialize metering service
-        AudioMeteringService.setRecorder(this.recorder);
         
         // Service state
         this.isStreaming = false;
@@ -52,7 +42,6 @@ class AudioStreamService {
         // Set audio metering callback
         if (onMeteringUpdate) {
             this.onMeteringUpdateCallback = onMeteringUpdate;
-            AudioMeteringService.setMeteringCallback(onMeteringUpdate);
         }
         
         // Set up WebSocket event listeners
@@ -123,7 +112,7 @@ class AudioStreamService {
             
             // Start metering service for audio visualization
             AudioMeteringService.resetMetering();
-            AudioMeteringService.startMetering();
+            AudioMeteringService.startMetering('recording', this.onMeteringUpdateCallback, this.recorder);
             
             // Start streaming immediately
             this.isStreaming = true;
@@ -465,20 +454,15 @@ class AudioStreamService {
     }
 }
 
-// Polyfill for atob/btoa and Buffer if needed in React Native environment
-if (typeof Buffer === 'undefined') {
-  global.Buffer = require('buffer').Buffer;
-}
-if (typeof btoa === 'undefined') {
-  global.btoa = function (str) {
-    return Buffer.from(str, 'binary').toString('base64');
-  };
-}
-if (typeof atob === 'undefined') {
-  global.atob = function (b64Encoded) {
-    return Buffer.from(b64Encoded, 'base64').toString('binary');
-  };
-}
+// if (typeof btoa === 'undefined') {
+//   global.btoa = function (str) {
+//     return Buffer.from(str, 'binary').toString('base64');
+//   };
+// }
+// if (typeof atob === 'undefined') {
+//   global.atob = function (b64Encoded) {
+//     return Buffer.from(b64Encoded, 'base64').toString('binary');
+//   };
+// }
 
-
-export default new AudioStreamService(); 
+export default new AudioStreamService();

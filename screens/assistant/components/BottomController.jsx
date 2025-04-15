@@ -1,7 +1,7 @@
 import { View, TextInput, TouchableOpacity, ActivityIndicator, Platform, StyleSheet, Dimensions, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../../utils/colors';
-
+import TintBlur from '../../../components/global/TintBlur'
 import Animated, {
     useAnimatedStyle,
     withTiming,
@@ -27,10 +27,9 @@ const BottomController = ({
     startRecording,
     stopRecording,
     textInputRef,
-    keyboardVisible
+    keyboardVisible,
 }) => {
     const [chatMode, setChatMode] = useState(false);
-    const [inputFocused, setInputFocused] = useState(false);
 
     // Animation values
     const pulseValue = useSharedValue(1);
@@ -41,18 +40,13 @@ const BottomController = ({
 
     // Handle focus events
     const handleInputFocus = () => {
-        setInputFocused(true);
         if (!chatMode) {
             setChatMode(true);
         }
     };
-    
+
     const handleInputBlur = () => {
-        setInputFocused(false);
-        // Only collapse if there's no text
-        if (chatMode && inputText.trim() === '') {
-            setChatMode(false);
-        }
+
     };
 
     // Handle recording animation
@@ -125,7 +119,7 @@ const BottomController = ({
 
     // Toggle chat mode
     const toggleChatMode = () => {
-        setChatMode(!chatMode);
+        setChatMode(true);
         if (!chatMode) {
             // Focus text input when entering chat mode
             setTimeout(() => {
@@ -248,7 +242,7 @@ const BottomController = ({
     });
 
     return (
-        <View style={[styles.container, { paddingHorizontal: chatMode ? 0 : 20, paddingBottom: keyboardVisible ? 0 : 50 }]}>
+        <View style={[styles.container, { paddingHorizontal: chatMode ? 0 : 20, paddingBottom: 50 }]}>
             <View style={styles.controlsContainer}>
                 {/* Left side with chat button/input */}
                 <View style={[
@@ -265,9 +259,9 @@ const BottomController = ({
                             hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                         >
                             <Animated.View style={chatIconStyle}>
-                                <Image 
-                                    source={require('../../../assets/icons/home/messages-274-1658433902.png')} 
-                                    style={{ width: 24, height: 24, tintColor: '#fff' }} 
+                                <Image
+                                    source={require('../../../assets/icons/home/messages-274-1658433902.png')}
+                                    style={{ width: 24, height: 24, tintColor: '#fff' }}
                                 />
                             </Animated.View>
                         </TouchableOpacity>
@@ -303,23 +297,22 @@ const BottomController = ({
                         onPress={isRecording ? stopRecording : handleStartRecording}
                         disabled={isProcessing}
                     >
-                        {isProcessing ? (
-                            <ActivityIndicator color="#fff" size="small" />
-                        ) : (
+                        {(
                             inputText.trim().length > 0 && chatMode ?
-                            <Image 
-                                source={require('../../../assets/icons/home/send message-92-1660809844.png')} 
-                                style={{ width: 24, height: 24, tintColor: '#fff' }} 
-                            />
-                            :
-                            <Image 
-                                source={isRecording ? require('../../../assets/icons/home/songs wave-101-1663075945.png') : require('../../../assets/icons/home/microphone-38-1663075945.png')} 
-                                style={{ 
-                                    width: chatMode || inputText.trim().length > 0 ? 24 : 32, 
-                                    height: chatMode || inputText.trim().length > 0 ? 24 : 32, 
-                                    tintColor: '#fff' 
-                                }} 
-                            />
+                                <Image
+                                    source={require('../../../assets/icons/home/send message-92-1660809844.png')}
+                                    style={{ width: 24, height: 24, tintColor: '#fff' }}
+                                />
+                                :
+                                <Image
+                                    source={isRecording || isProcessing ? require('../../../assets/icons/home/songs wave-101-1663075945.png') : require('../../../assets/icons/home/microphone-38-1663075945.png')}
+                                    style={{
+                                        width: chatMode || inputText.trim().length > 0 ? 24 : 32,
+                                        height: chatMode || inputText.trim().length > 0 ? 24 : 32,
+                                        tintColor: isRecording ? '#000' : '#fff',
+                                        opacity: isProcessing ? 0.2 : 1
+                                    }}
+                                />
                         )}
                     </TouchableOpacity>
                 </Animated.View>
@@ -332,9 +325,9 @@ const BottomController = ({
                     { right: chatMode ? 8 : 16 }
                 ]}>
                     <TouchableOpacity style={styles.sideButton}>
-                        <Image 
-                            source={require('../../../assets/icons/home/Gallery_ai_jkN3YHmetpDSDiDnH6icWZtZP2qKn1oNICfG.png')} 
-                            style={{ width: 24, height: 24, tintColor: '#fff' }} 
+                        <Image
+                            source={require('../../../assets/icons/home/Gallery_ai_jkN3YHmetpDSDiDnH6icWZtZP2qKn1oNICfG.png')}
+                            style={{ width: 24, height: 24, tintColor: '#fff' }}
                         />
                     </TouchableOpacity>
                 </Animated.View>
@@ -348,7 +341,14 @@ const styles = StyleSheet.create({
         width: '100%',
         padding: 16,
         paddingHorizontal: 20,
-        position: 'relative',
+        backgroundColor: '#121212',
+        // height: 125,
+        bottom: 0,
+        borderTopRightRadius: 30,
+        borderTopLeftRadius: 30,
+        paddingTop: 10,
+        overflow: 'hidden',
+        marginTop: 'auto',
     },
     blur: {
         position: 'absolute',
@@ -446,19 +446,20 @@ const styles = StyleSheet.create({
         borderRadius: 24,
     },
     recordingButton: {
-        backgroundColor: colors.main,
-        shadowColor: colors.main,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
         shadowOpacity: 0.4,
     },
     processingButton: {
-        backgroundColor: '#ff9500',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     textInput: {
         flex: 1,
         color: colors.mainColor,
-        fontSize: 16,
+        fontSize: 14,
         maxHeight: 100,
         paddingVertical: 8,
+        fontWeight: '300'
     },
     sendButton: {
         width: 36,

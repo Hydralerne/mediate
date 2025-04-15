@@ -236,6 +236,7 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     fontWeight: '300',
     opacity: 0.9,
+    paddingHorizontal: 20,
   },
   cursorContainer: {
     height: 24,
