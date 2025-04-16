@@ -26,6 +26,7 @@ class WhisperAPIService {
         this.sessionId = sessionId;
     }
     
+    
     /**
      * Set the authentication token for WebSocket connection
      * @param {string} token - Authentication token

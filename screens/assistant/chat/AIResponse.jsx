@@ -30,7 +30,7 @@ const AIResponse = ({ message }) => {
                         }
                     }
                     
-                    // return <CodeBlock key={index} code={code} language={language} />;
+                    return <CodeBlock key={index} code={code} language={language} />;
                 } else if (part.trim() !== '') {
                     // Regular text paragraphs (skip empty parts)
                     // Split by double newlines to create separate paragraphs

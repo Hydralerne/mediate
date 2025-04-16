@@ -1,34 +1,30 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
-import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView, Keyboard, Alert, StyleSheet, StatusBar, ActivityIndicator } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Alert, StyleSheet, StatusBar } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import colors from '../../utils/colors';
-import WelcomeMessage from './components/WelcomeMessage';
 import AudioStreamService from './services/AudioStreamService';
-import AssistantAPI from './services/AssistantAPI';
-import AIView from './components/AIView';
 import Header from './components/Header';
 import BottomController from './components/BottomController';
 import webSocketService from '../../services/websocket';
 import AudioPlayerService from './services/audioStream';
-import CaptionsViewer from './components/CaptionsViewer';
-import AnalyzingEffect from './components/AnalyzingEffect';
 import Chat from './chat/Main';
+import Voice from './voice/index';
+import ChatApi from './services/ChatApi';
 
 const Main = ({ navigation }) => {
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [audioLevel, setAudioLevel] = useState(0);
   const scrollViewRef = useRef(null);
   const textInputRef = useRef(null);
-  const contentHeight = useRef(0);
-  const insets = useSafeAreaInsets();
+  const [isVoice, setIsVoice] = useState(false)
+
+  const sessionRef = useRef(null);
+
+  // voice refs
   const variationRef = useRef(0);
+  const [audioLevel, setAudioLevel] = useState(0);
   const [captionsData, setCaptionsData] = useState(null);
   const [captionsSound, setCaptionsSound] = useState(null);
   const [analysing, setAnalysing] = useState(null);
@@ -112,26 +108,6 @@ const Main = ({ navigation }) => {
   };
 
   useEffect(() => {
-    // Set up keyboard listeners
-    const keyboardWillShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-        setKeyboardVisible(true);
-        setTimeout(() => {
-          // scrollToBottom();
-        }, 100);
-      }
-    );
-
-    const keyboardWillHideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0);
-        setKeyboardVisible(false);
-      }
-    );
-
     // Only set up callbacks once
     if (!callbacksInitializedRef.current) {
       // Set up callbacks for the audio streaming service
@@ -160,9 +136,6 @@ const Main = ({ navigation }) => {
 
 
     return () => {
-      // Clean up
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
 
       if (isRecording) {
         AudioStreamService.stopStreaming();
@@ -212,58 +185,70 @@ const Main = ({ navigation }) => {
     }, 100);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
+  const onSendMessage = async (message) => {
+    console.log('message', message);
+    if (!message.trim()) return;
+    
+    // Add user message
+    setMessages(prevMessages => [...prevMessages, { sender: 'user', text: message }]);
+    setInputText('');
+    
+    ChatApi.sendMessage(message, (text) => {
+      try {
+        const data = JSON.parse(text);
 
+        const { text: messageText, type, sessionId, messageId } = data;
+        if (type === 'text') {
+          // Update messages by checking if we already have this messageId
+          setMessages(prevMessages => {
+            // Find if there's an existing message with this messageId
+            const existingMessageIndex = prevMessages.findIndex(msg => msg.messageId === messageId);
+            
+            if (existingMessageIndex !== -1) {
+              // Message exists, append text to it
+              const updatedMessages = [...prevMessages];
+              updatedMessages[existingMessageIndex] = {
+                ...updatedMessages[existingMessageIndex],
+                text: updatedMessages[existingMessageIndex].text + messageText
+              };
+              return updatedMessages;
+            } else {
+              // New message, add it to the array
+              return [...prevMessages, { sender: 'ai', text: messageText, messageId }];
+            }
+          });
+        }
+        
+        if (sessionId) {
+          sessionRef.current = sessionId;
+        }
+      } catch (e) {
+        console.log('dfgfrhtjfg', message);
+        console.log('error', e);
+      }
+    });
   };
 
-  // Calculate the main content height
-  const handleContentLayout = (event) => {
-    const { height } = event.nativeEvent.layout;
-    contentHeight.current = height;
-  };
-
-  const voiceAssistant = () => (
-    <View style={styles.emptyState}>
-      <AIView audioLevel={audioLevel} variationRef={variationRef} />
-      {captionsData && captionsSound ? (
-        <CaptionsViewer
-          captions={captionsData}
-          soundObject={captionsSound}
-          onCaptionsEnd={handleCaptionsEnd}
-        />
-      ) :
-        analysing ? (
-          <AnalyzingEffect analysing={analysing} />
-        ) : (
-          <WelcomeMessage />
-        )}
-    </View>
-  )
 
   return (
     <View style={styles.safeArea} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <Header />
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : null}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-      >
-        <Chat />
-        <BottomController
-          inputText={inputText}
-          setInputText={setInputText}
-          isRecording={isRecording}
-          isProcessing={isProcessing}
-          handleSendMessage={handleSendMessage}
-          startRecording={startRecording}
-          stopRecording={stopRecording}
-          textInputRef={textInputRef}
-          keyboardVisible={keyboardVisible}
-        />
-
-      </KeyboardAvoidingView>
+      {
+        isVoice ?
+          <Voice {...{ audioLevel, captionsData, captionsSound, analysing }} /> :
+          <Chat {...{ messages, setMessages, onSendMessage }} />
+      }
+      <BottomController
+        inputText={inputText}
+        setInputText={setInputText}
+        isRecording={isRecording}
+        isProcessing={isProcessing}
+        handleSendMessage={onSendMessage}
+        startRecording={startRecording}
+        stopRecording={stopRecording}
+        textInputRef={textInputRef}
+      />
     </View>
   );
 };

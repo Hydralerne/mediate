@@ -6,13 +6,13 @@ const Header = () => {
     const insets = useSafeAreaInsets()
     return (
         <View style={[styles.header, { paddingTop: insets.top }]}>
-            <TintBlur
+            {/* <TintBlur
                 direction="top"
                 locations={[0.25, 0]}
                 intensity={30}
                 tint="dark"
                 style={{ height: 150 }}
-            />
+            /> */}
             <TouchableOpacity style={styles.backIconContainer} onPress={() => { }}>
                 <Image source={require('../../../assets/icons/home/chevron left-8-1696832126.png')} style={styles.backIcon} />
             </TouchableOpacity>
