@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import { View, Text, StyleSheet, ScrollView, FlatList, Platform, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../../../utils/colors';
@@ -19,15 +19,14 @@ const UserMessage = ({ message }) => {
     );
 };
 
-const Main = ({ scrollViewRef }) => {
+const Main = ({ flatListRef, messages, setMessages, sendMessageRef = {} }) => {
     const insets = useSafeAreaInsets();
     const sessionRef = useRef(null);
-    const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
-    
+
     // Reference to generate unique keys
     const messageKeyCounterRef = useRef(0);
-    
+
     // Queue for storing incoming text chunks
     const pendingChunksRef = useRef({});
     // Flag to track if we're currently processing the queue
@@ -38,13 +37,13 @@ const Main = ({ scrollViewRef }) => {
     const createdMessageIdsRef = useRef(new Set());
 
     useEffect(() => {
-        if (messages.length > 0 && scrollViewRef?.current) {
+        if (messages.length > 0 && flatListRef?.current) {
             setTimeout(() => {
-                scrollViewRef.current.scrollToEnd({ animated: true });
+                flatListRef.current.scrollToEnd({ animated: true });
             }, 100);
         }
     }, [messages]);
-    
+
     // Cleanup animation interval on unmount
     useEffect(() => {
         return () => {
@@ -53,7 +52,11 @@ const Main = ({ scrollViewRef }) => {
             }
         };
     }, []);
-    
+
+
+    const sendMsg = (message) => onSendMessage(message, setMessages, setInputText, createdMessageIdsRef, messageKeyCounterRef, isProcessingRef, pendingChunksRef, animationIntervalRef, sessionRef)
+
+    sendMessageRef.current = sendMsg
 
     const renderMessage = ({ item }) => {
         if (item.sender === 'user') {
@@ -70,15 +73,18 @@ const Main = ({ scrollViewRef }) => {
             keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
         >
             <FlatList
-                ref={scrollViewRef}
+                ref={flatListRef}
                 data={messages}
                 renderItem={renderMessage}
                 keyExtractor={(item) => item.uniqueKey || item.id || `msg-${item.messageId}-${Math.random().toString(36).substring(2, 9)}`}
                 contentContainerStyle={[styles.chatContainer, { paddingTop: insets.top + 100 }]}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={() => (
-                    <StartChat onSendMessage={(message) => onSendMessage(message, setMessages, setInputText, createdMessageIdsRef, messageKeyCounterRef, isProcessingRef, pendingChunksRef, animationIntervalRef, sessionRef)} />
+                    <StartChat
+                        onSendMessage={sendMsg}
+                    />
                 )}
+                ListFooterComponent={<View style={{ height: 100 }} />} 
                 extraData={messages}
             />
         </KeyboardAvoidingView>
@@ -96,7 +102,6 @@ const styles = StyleSheet.create({
     chatContainer: {
         paddingHorizontal: 20,
         paddingTop: 80,
-        paddingBottom: 60, // Extra space for input area
     },
     // User message styles
     userMessageContainer: {
@@ -133,4 +138,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Main;
+export default memo(Main);

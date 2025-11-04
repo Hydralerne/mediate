@@ -1,4 +1,4 @@
-import { View, TextInput, TouchableOpacity, ActivityIndicator, Platform, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, TextInput, TouchableOpacity, ActivityIndicator, Platform, StyleSheet, Dimensions, Image, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../../utils/colors';
 import TintBlur from '../../../components/global/TintBlur'
@@ -14,29 +14,44 @@ import Animated, {
     Extrapolate,
     runOnJS
 } from 'react-native-reanimated';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, memo } from 'react';
 
 const { width } = Dimensions.get('window');
+import { onSendMessage } from '../chat/utils';
 
 const BottomController = ({
-    inputText,
-    setInputText,
     isRecording,
     isProcessing,
-    handleSendMessage,
     startRecording,
     stopRecording,
     textInputRef,
-    keyboardVisible,
+    sendMessageRef,
+    flatListRef,
 }) => {
     const [chatMode, setChatMode] = useState(false);
-
+    const [inputText, setInputText] = useState('');
     // Animation values
     const pulseValue = useSharedValue(1);
     const micScale = useSharedValue(1);
     const micPosition = useSharedValue(0); // 0 = center, 1 = right
     const inputExpandProgress = useSharedValue(0);
     const recordingOpacity = useSharedValue(0);
+
+    const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+    useEffect(() => {
+        const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
+            if (!isKeyboardVisible) setIsKeyboardVisible(true);
+        });
+        const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+            setIsKeyboardVisible(false);
+        });
+
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, []);
 
     // Handle focus events
     const handleInputFocus = () => {
@@ -46,7 +61,6 @@ const BottomController = ({
     };
 
     const handleInputBlur = () => {
-
     };
 
     // Handle recording animation
@@ -241,8 +255,16 @@ const BottomController = ({
         };
     });
 
+    const sendMsg = () => {
+        setInputText('')
+        sendMessageRef.current(inputText)
+        flatListRef.current.scrollToEnd({ animated: true })
+    }
+
+    const texting = inputText.trim().length > 0
+
     return (
-        <View style={[styles.container, { paddingHorizontal: chatMode ? 0 : 20, paddingBottom: 50 }]}>
+        <View style={[styles.container, { paddingHorizontal: chatMode ? 0 : 20, paddingBottom: chatMode && isKeyboardVisible ? 10 : 50 }]}>
             <View style={styles.controlsContainer}>
                 {/* Left side with chat button/input */}
                 <View style={[
@@ -294,11 +316,11 @@ const BottomController = ({
                             isProcessing && styles.processingButton,
                             chatMode && styles.micButtonChat
                         ]}
-                        onPress={isRecording ? stopRecording : handleStartRecording}
+                        onPress={texting ? sendMsg : (isRecording ? stopRecording : handleStartRecording)}
                         disabled={isProcessing}
                     >
                         {(
-                            inputText.trim().length > 0 && chatMode ?
+                            texting && chatMode ?
                                 <Image
                                     source={require('../../../assets/icons/home/send message-92-1660809844.png')}
                                     style={{ width: 24, height: 24, tintColor: '#fff' }}
@@ -307,8 +329,8 @@ const BottomController = ({
                                 <Image
                                     source={isRecording || isProcessing ? require('../../../assets/icons/home/songs wave-101-1663075945.png') : require('../../../assets/icons/home/microphone-38-1663075945.png')}
                                     style={{
-                                        width: chatMode || inputText.trim().length > 0 ? 24 : 32,
-                                        height: chatMode || inputText.trim().length > 0 ? 24 : 32,
+                                        width: texting && chatMode ? 24 : 32,
+                                        height: texting && chatMode ? 24 : 32,
                                         tintColor: isRecording ? '#000' : '#fff',
                                         opacity: isProcessing ? 0.2 : 1
                                     }}
@@ -486,4 +508,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default BottomController;
+export default memo(BottomController);

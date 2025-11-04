@@ -1,6 +1,6 @@
 import fragmentShader from './shaders/fragmentShader.js';
-import { Renderer } from 'expo-three';
-import * as THREE from 'three';
+// import { Renderer } from 'expo-three';
+// import * as THREE from 'three';
 
 export const createRenderer = (gl, touchPositionRef, colorRefs) => {
         // Setup scene

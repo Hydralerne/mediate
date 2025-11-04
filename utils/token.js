@@ -50,8 +50,7 @@ export const saveToken = async (token) => {
 
 export const getToken = async () => {
     try {
-        return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL2FwaS5vYmxpZW4uY29tIiwiaXNzIjoib2JsaWVuLWFwaSIsInZyIjoiMi4wIiwianRpIjoickhiTjRYSHcwbUp0dEJrUzdoclVUN3k2IiwiZXhwIjoxNzQ0OTM2MDUyfQ.tX9ggXQd_iFZ-OcwxbsA62nQom2HJbJLAOtIPrgvkjo'
-
+        return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL2FwaS5vYmxpZW4uY29tIiwiaXNzIjoib2JsaWVuLWFwaSIsInZyIjoiMi4wIiwianRpIjoiMTJWTDNWcmdkb1R2STB2WkVBcmQwSDZkIiwiZXhwIjoxNzQ1NTYxNjk0fQ.q0_9P6I1nIgolRxm2EXhH6jyPbP-JovIJ4_PVtWTZPI';
         let token;
         if (isWeb) {
             token = localStorage.getItem('userToken');

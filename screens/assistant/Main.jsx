@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
-import { View, Alert, StyleSheet, StatusBar } from 'react-native';
+import { View, Alert, StyleSheet, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import colors from '../../utils/colors';
@@ -16,7 +16,7 @@ const Main = ({ navigation }) => {
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const scrollViewRef = useRef(null);
+  const flatListRef = useRef(null);
   const textInputRef = useRef(null);
   const [isVoice, setIsVoice] = useState(false)
 
@@ -29,6 +29,7 @@ const Main = ({ navigation }) => {
   const [captionsSound, setCaptionsSound] = useState(null);
   const [analysing, setAnalysing] = useState(null);
   const [messages, setMessages] = useState([]);
+  const sendMessageRef = useRef(null);
 
   const tasks = useRef([]);
 
@@ -179,77 +180,32 @@ const Main = ({ navigation }) => {
 
   const scrollToBottom = () => {
     setTimeout(() => {
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollToEnd({ animated: true });
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: true });
       }
     }, 100);
   };
 
-  const onSendMessage = async (message) => {
-    console.log('message', message);
-    if (!message.trim()) return;
-    
-    // Add user message
-    setMessages(prevMessages => [...prevMessages, { sender: 'user', text: message }]);
-    setInputText('');
-    
-    ChatApi.sendMessage(message, (text) => {
-      try {
-        const data = JSON.parse(text);
-
-        const { text: messageText, type, sessionId, messageId } = data;
-        if (type === 'text') {
-          // Update messages by checking if we already have this messageId
-          setMessages(prevMessages => {
-            // Find if there's an existing message with this messageId
-            const existingMessageIndex = prevMessages.findIndex(msg => msg.messageId === messageId);
-            
-            if (existingMessageIndex !== -1) {
-              // Message exists, append text to it
-              const updatedMessages = [...prevMessages];
-              updatedMessages[existingMessageIndex] = {
-                ...updatedMessages[existingMessageIndex],
-                text: updatedMessages[existingMessageIndex].text + messageText
-              };
-              return updatedMessages;
-            } else {
-              // New message, add it to the array
-              return [...prevMessages, { sender: 'ai', text: messageText, messageId }];
-            }
-          });
-        }
-        
-        if (sessionId) {
-          sessionRef.current = sessionId;
-        }
-      } catch (e) {
-        console.log('dfgfrhtjfg', message);
-        console.log('error', e);
-      }
-    });
-  };
-
 
   return (
-    <View style={styles.safeArea} edges={['top', 'bottom']}>
+    <KeyboardAvoidingView style={styles.safeArea} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <Header />
       {
         isVoice ?
           <Voice {...{ audioLevel, captionsData, captionsSound, analysing }} /> :
-          <Chat {...{ messages, setMessages, onSendMessage }} />
+          <Chat {...{ messages, setMessages, sendMessageRef, flatListRef }} />
       }
       <BottomController
-        inputText={inputText}
-        setInputText={setInputText}
         isRecording={isRecording}
         isProcessing={isProcessing}
-        handleSendMessage={onSendMessage}
         startRecording={startRecording}
         stopRecording={stopRecording}
         textInputRef={textInputRef}
+        sendMessageRef={sendMessageRef}
+        flatListRef={flatListRef}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

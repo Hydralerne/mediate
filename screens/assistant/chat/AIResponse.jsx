@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import colors from '../../../utils/colors';
 import CodeBlock from './CodeBlock';
 
@@ -32,18 +33,85 @@ const AIResponse = ({ message }) => {
                     
                     return <CodeBlock key={index} code={code} language={language} />;
                 } else if (part.trim() !== '') {
-                    // Regular text paragraphs (skip empty parts)
-                    // Split by double newlines to create separate paragraphs
-                    return part.split(/\n\n+/).map((paragraph, pIndex) => (
-                        <Text key={`${index}-${pIndex}`} style={styles.aiText}>
-                            {paragraph}
-                        </Text>
-                    ));
+                    // Use the markdown component for all non-code parts
+                    return (
+                        <Markdown
+                            key={index}
+                            style={markdownStyles}
+                        >
+                            {part}
+                        </Markdown>
+                    );
                 }
                 return null;
             })}
         </View>
     );
+};
+
+// Styles specifically for markdown components
+const markdownStyles = {
+    body: {
+        color: '#fff',
+        fontSize: 16,
+        lineHeight: 24,
+    },
+    heading1: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginTop: 8,
+        marginBottom: 6,
+    },
+    heading2: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginTop: 6,
+        marginBottom: 4,
+    },
+    heading3: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginTop: 4,
+        marginBottom: 2,
+    },
+    paragraph: {
+        marginBottom: 12,
+        letterSpacing: 0.3,
+    },
+    strong: {
+        fontWeight: 'bold',
+    },
+    em: {
+        fontStyle: 'italic',
+    },
+    bullet_list: {
+        marginBottom: 10,
+    },
+    ordered_list: {
+        marginBottom: 10,
+    },
+    list_item: {
+        flexDirection: 'row',
+        marginBottom: 5,
+    },
+    blockquote: {
+        borderLeftWidth: 4,
+        borderLeftColor: 'rgba(255, 255, 255, 0.3)',
+        paddingLeft: 10,
+        paddingVertical: 4,
+        marginLeft: 10,
+        marginVertical: 6,
+    },
+    code_inline: {
+        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+        backgroundColor: 'rgba(100, 100, 100, 0.2)',
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 2,
+    },
 };
 
 const styles = StyleSheet.create({
