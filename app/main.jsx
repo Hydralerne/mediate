@@ -3,7 +3,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { View, Dimensions, Platform, StatusBar } from 'react-native';
 import RootNavigator from '../navigations/RootNavigator';
-import SignedOutNavigator from '../navigations/SignedOutNavigator';
 import { loadFonts } from '../contexts/Fonts';
 import { UserContext } from '../contexts/UserContext';
 import * as SplashScreen from 'expo-splash-screen';
@@ -75,13 +74,7 @@ const Main = () => {
                 width: '100%',
             }}>
             <StatusBar style={'light'} translucent backgroundColor="transparent" />
-            {
-                isLogedIn || true ?
-                    <RootNavigator />
-                    :
-                    <SignedOutNavigator />
-            }
-
+            <RootNavigator />
         </GestureHandlerRootView>
     );
 };

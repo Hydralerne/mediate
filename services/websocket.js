@@ -217,7 +217,6 @@ class WebSocketService {
             };
 
             this.socket.onerror = (error) => {
-                console.log('websocket error', error);
                 clearTimeout(this.connectionTimeout);
                 this.isConnecting = false;
 
@@ -232,7 +231,6 @@ class WebSocketService {
             };
 
             this.socket.onclose = (event) => {
-                console.log('websocket closed', event);
                 clearTimeout(this.connectionTimeout);
                 this._clearPingPong();
                 this.isConnecting = false;

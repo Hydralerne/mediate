@@ -13,7 +13,6 @@ import Voice from './voice/index';
 import ChatApi from './services/ChatApi';
 
 const Main = ({ navigation }) => {
-  const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const flatListRef = useRef(null);
@@ -30,7 +29,7 @@ const Main = ({ navigation }) => {
   const [analysing, setAnalysing] = useState(null);
   const [messages, setMessages] = useState([]);
   const sendMessageRef = useRef(null);
-
+  
   const tasks = useRef([]);
 
   // Add a ref to track if callbacks have been initialized
@@ -76,27 +75,9 @@ const Main = ({ navigation }) => {
   const taskRef = useRef(null);
 
   const handleWebSocketMessageCallback = useRef((response) => {
-    // Handle the event data
-    if (taskRef.current) return
-    if (response.type == 'triggering_task') {
-      setTimeout(() => {
-        variationRef.current = 3;
-        setAnalysing(response.data.description);
-      }, 5000)
-      setTimeout(() => {
-        navigation.navigate('WebsitePreview', { websiteDomain: 'https://hydra.obl.ee' });
-        setAnalysing(null);
-      }, 20000);
-      setTimeout(() => {
-        webSocketService.socket.send(JSON.stringify({
-          type: 'audio:test',
-        }));
-      }, 25000);
-      taskRef.current = true;
-      console.log('tasks saknssssdafsasssskd', tasks.current);
-    }
+   
+    
   }).current;
-
   const handleCaptionsCallback = useRef((captions, sound) => {
     setCaptionsData(captions);
     setCaptionsSound(sound);
