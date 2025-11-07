@@ -2,7 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 const Stack = createNativeStackNavigator();
 import { BottomSheetProvider } from '../contexts/BottomSheet';
-import Assistant from '../screens/assistant/Main';
+import DrawerNavigator from './DrawerNavigation';
 
 const RootNavigator = () => {
     return (
@@ -13,9 +13,9 @@ const RootNavigator = () => {
                 }}
             >
                 <Stack.Screen
-                    name="Assistant"
-                    component={Assistant}
-                />
+                        name="Drawer"
+                        component={DrawerNavigator}
+                    />
             </Stack.Navigator>
         </BottomSheetProvider>
     );
