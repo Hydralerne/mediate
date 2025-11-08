@@ -2,16 +2,16 @@ import React, { memo, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, StatusBar, TouchableOpacity, ScrollView } from 'react-native';
 import { DrawerContentScrollView, useDrawerStatus } from '@react-navigation/drawer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Logo from '@/components/global/Logo';
+import { Image } from 'react-native';
 
 // Custom Drawer Content for Medical Research Agent
 const CustomDrawerContent = (props) => {
   const [activeChat, setActiveChat] = useState(null);
   const insets = useSafeAreaInsets();
-  
+
   // Use the useDrawerStatus hook to check if drawer is open
   const isDrawerOpen = useDrawerStatus() === 'open';
-  
+
   // Update StatusBar only when drawer open/close state changes
   useEffect(() => {
     StatusBar.setBarStyle(isDrawerOpen ? 'light-content' : 'dark-content');
@@ -51,7 +51,10 @@ const CustomDrawerContent = (props) => {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header with Logo and New Chat */}
       <View style={styles.header}>
-        <Logo width={32} height={24} color="#fff" />
+        <View style={styles.logoContainer}>
+          <Image source={require('@/assets/logo.png')} style={styles.logo} />
+          <Text style={styles.headerTitle}>Hekai Research</Text>
+        </View>
         <TouchableOpacity style={styles.newChatButton} onPress={handleNewChat}>
           <Text style={styles.newChatIcon}>+</Text>
         </TouchableOpacity>
@@ -70,11 +73,11 @@ const CustomDrawerContent = (props) => {
             ]}
             onPress={() => handleChatPress(chat.id)}
           >
-            <Text 
+            <Text
               style={[
                 styles.chatTitle,
                 activeChat === chat.id && styles.activeChatTitle
-              ]} 
+              ]}
               numberOfLines={1}
             >
               {chat.title}
@@ -86,7 +89,7 @@ const CustomDrawerContent = (props) => {
       {/* Bottom Section */}
       <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 10 }]}>
         <View style={styles.divider} />
-        
+
         <TouchableOpacity style={styles.menuItem}>
           <Text style={styles.menuText}>Settings</Text>
         </TouchableOpacity>
@@ -102,7 +105,9 @@ const CustomDrawerContent = (props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#080808',
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
   },
   header: {
     flexDirection: 'row',
@@ -110,6 +115,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
+  },
+  logo: {
+    width: 32,
+    height: 32,
+    tintColor: '#fff',
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '300',
+    marginLeft: 12,
   },
   newChatButton: {
     width: 32,
@@ -147,7 +167,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     marginVertical: 10,
   },
   menuItem: {

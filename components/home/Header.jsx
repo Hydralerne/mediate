@@ -10,7 +10,8 @@ const Header = () => {
         navigation.openDrawer();
     };
 
-    const handleInfoPress = () => {
+    const handlePremiumPress = () => {
+        navigation.navigate('Premium');
         // TODO: Open info/settings modal
         console.log('Info pressed');
     };
@@ -19,16 +20,18 @@ const Header = () => {
         <View style={[styles.header, { paddingTop: insets.top }]}>
             <TouchableOpacity style={styles.menuIconContainer} onPress={handleMenuPress}>
                 <View style={styles.menuIconLines}>
-                    <View style={styles.line} />
-                    <View style={styles.line} />
-                    <View style={styles.line} />
+                    <Image
+                        source={require('@/assets/icons/Menu_open_right__GgluGK9aWDoeXJMsOOo8m9KKibAwmPH0A7C1.png')}
+                        style={styles.menuIcon}
+                    />
                 </View>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Medical Research AI</Text>
-            <TouchableOpacity style={styles.settings} onPress={handleInfoPress}>
-                <View style={styles.infoIcon}>
-                    <Text style={styles.infoText}>i</Text>
-                </View>
+            <Text style={styles.headerTitle}>Hekai</Text>
+            <TouchableOpacity style={styles.settings} onPress={handlePremiumPress}>
+                <Image
+                    source={require('@/assets/icons/King_ADiMZbtCwV0WmhYL4Zo4RxzwgxoAS7iMtqE5.png')}
+                    style={styles.infoIcon}
+                />
             </TouchableOpacity>
         </View>
     )
@@ -89,11 +92,7 @@ const styles = StyleSheet.create({
     infoIcon: {
         width: 24,
         height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: 'white',
-        justifyContent: 'center',
-        alignItems: 'center',
+        tintColor: 'white',
     },
     infoText: {
         color: 'white',

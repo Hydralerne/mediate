@@ -1,554 +1,281 @@
-import { getToken } from '../utils/token';
-import { handleAudioStreamStart, handleAudioStreamEnd, handleAudioChunk, handleAudioStreamFiles, updateMetering, updateAudioCaptions } from '../screens/assistant/services/audioStream';
+"use client";
+
+import { getToken } from "@/utils/request";
 
 class WebSocketService {
-    constructor() {
+    constructor({ socketUrl } = {}) {
         this.socket = null;
-        this.baseUrl = 'wss://api.oblien.com';
-        this.debugMode = false;
-        this.isConnecting = false;
-        this.connectionTimeout = null;
-        this.pingInterval = null;
-        this.reconnectTimeout = null;
-        this.eventListeners = {};
+        this.listeners = new Map();
+        this.bufferedEvents = new Map();
+        this.bufferableEventTypes = new Set(['indexing_status']);
         this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5;
-        this.reconnectDelay = 2000;
-        this.pingIntervalTime = 30000;
-        this.lastPongTime = null;
-        this.autoReconnectEnabled = false;
-        
-        // Audio streaming state
-        this.currentAudioSession = null;
-        this.isAudioStreamActive = false;
+        this.maxReconnectAttempts = 5000;
+        this.reconnectTimeout = 3000; // Start with 3 seconds
+        this.socketUrl = socketUrl;
+        this.requireAppRunning = null;
     }
 
-    /**
-     * Initialize the WebSocket service and establish connection
-     * @returns {Promise<Object>} - Connection result
-     */
-    initialize() {
-        return this.connect();
-    }
-
-    setDebugMode(enabled) {
-        this.debugMode = enabled;
-    }
-
-    /**
-     * Configure auto-reconnect behavior
-     * @param {Object} config - Reconnection configuration
-     * @param {boolean} config.enabled - Whether to enable auto-reconnect
-     * @param {number} [config.maxAttempts] - Maximum number of reconnection attempts
-     * @param {number} [config.initialDelay] - Initial delay in milliseconds between attempts
-     * @param {number} [config.maxDelay] - Maximum delay in milliseconds between attempts
-     */
-    configureReconnect(config) {
-        this.autoReconnectEnabled = config.enabled;
-
-        if (typeof config.maxAttempts === 'number' && config.maxAttempts > 0) {
-            this.maxReconnectAttempts = config.maxAttempts;
-        }
-
-        if (typeof config.initialDelay === 'number' && config.initialDelay > 0) {
-            this.reconnectDelay = config.initialDelay;
-        }
-
-        if (typeof config.maxDelay === 'number' && config.maxDelay > 0) {
-            this.maxReconnectDelay = config.maxDelay;
-        }
-    }
-
-    /**
-     * Connect to the WebSocket server
-     * @param {Object} options - Connection options
-     * @param {boolean} options.autoReconnect - Whether to auto-reconnect on disconnection (overrides class setting)
-     * @returns {Promise<Object>} - Connection result
-     */
-    connect(options = {}) {
-        return new Promise(async (resolve, reject) => {
-            if (this.isConnected()) {
-                return resolve({ success: true, connection: this.socket });
-            }
-
-            if (this.isConnecting) {
-                return reject({ success: false, error: 'Connection already in progress' });
-            }
-
-            this.isConnecting = true;
-
-            if (this.reconnectTimeout) {
-                clearTimeout(this.reconnectTimeout);
-                this.reconnectTimeout = null;
-            }
-
-            this.connectionTimeout = setTimeout(() => {
-                this.isConnecting = false;
-                reject({
-                    success: false,
-                    error: "WebSocket connection timeout"
-                });
-            }, 10000);
-
-            const token = await getToken();
-
-            if (!token) {
-                this.isConnecting = false;
-                clearTimeout(this.connectionTimeout);
-                reject({
-                    success: false,
-                    error: "No authorization token available"
-                });
-                return;
-            }
-
-            try {
-                this.socket = new WebSocket(this.baseUrl, null, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                this.socket.binaryType = 'arraybuffer';
-            } catch (error) {
-                console.log('error', error);
-                this.isConnecting = false;
-                clearTimeout(this.connectionTimeout);
-                reject({
-                    success: false,
-                    error: `Failed to create WebSocket: ${error.message}`
-                });
-                return;
-            }
-
-            this.socket.onopen = () => {
-                console.log('websocket connected');
-                clearTimeout(this.connectionTimeout);
-                this.isConnecting = false;
-                this.reconnectAttempts = 0;
-                this._startPingPong();
-
-                if (this.eventListeners.open) {
-                    this._triggerEvent('open', {
-                        type: 'open',
-                        state: 'connected'
-                    });
-                }
-
-                resolve({ success: true, connection: this.socket });
-            };
-
-            this.socket.onmessage = (event) => {
-                try {
-                    if (typeof event.data === 'string') {
-                        const response = JSON.parse(event.data);
-                        const messageType = response.type || 'unknown';
-
-                        console.log('websocket message', messageType, response);
-
-                        if (messageType === 'pong') {
-                            this.lastPongTime = Date.now();
-                            return;
-                        }
-
-                        if(messageType === 'audio_stream_files') {
-                            handleAudioStreamFiles(response);
-                        }
-                        // Handle audio stream events
-                        if (messageType === 'audio_stream_start') {
-                            this.isAudioStreamActive = true;
-                            this.currentAudioSession = response.sessionId;                            
-                            try {
-                                handleAudioStreamStart(response);
-                            } catch (error) {
-                                console.error('[WebSocketService] Error in handleAudioStreamStart:', error);
-                            }
-                        }
-
-                        if (messageType === 'audio_stream_end') {
-                            try {
-                                handleAudioStreamEnd();
-                            } catch (error) {
-                                console.error('[WebSocketService] Error in handleAudioStreamEnd:', error);
-                            }
-                            
-                            this.isAudioStreamActive = false;
-                            this.currentAudioSession = null;
-                        }
-
-                        if (messageType === 'update_audio_levels') {
-                            try {
-                                updateMetering(response);
-                            } catch (error) {
-                                console.error('[WebSocketService] Error in updateAudioMeterData:', error);
-                            }
-                        }
-
-                        if (messageType === 'update_audio_captions') {
-                            try {
-                                updateAudioCaptions(response);
-                            } catch (error) {
-                                console.error('[WebSocketService] Error in updateAudioCaptions:', error);
-                            }
-                        }
-
-                        if (this.eventListeners[messageType]) {
-                            this._triggerEvent(messageType, response);
-                        }
-
-                        if (this.eventListeners.message) {
-                            this._triggerEvent('message', response);
-                        }
-                    } else if (event.data instanceof ArrayBuffer) {
-                        // Pass binary data to binary listeners
-                        if (this.eventListeners.binary) {
-                            this._triggerEvent('binary', event.data);
-                        }
-                        if (this.isAudioStreamActive) {
-                            try {
-                                handleAudioChunk(event.data);
-                            } catch (error) {
-                                console.error('[WebSocketService] Error in handleAudioChunk:', error);
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error('[WebSocketService] Error parsing WebSocket message:', error);
-                }
-            };
-
-            this.socket.onerror = (error) => {
-                clearTimeout(this.connectionTimeout);
-                this.isConnecting = false;
-
-                if (this.eventListeners.error) {
-                    this._triggerEvent('error', { message: "WebSocket connection error" });
-                }
-
-                reject({
-                    success: false,
-                    error: "WebSocket connection error"
-                });
-            };
-
-            this.socket.onclose = (event) => {
-                clearTimeout(this.connectionTimeout);
-                this._clearPingPong();
-                this.isConnecting = false;
-
-                const wasIntentional = event.code === 1000 || event.code === 1001;
-                const isAuthError = event.code === 1008;
-
-                // Reset audio streaming state
-                this.isAudioStreamActive = false;
-                this.currentAudioSession = null;
-
-                if (this.eventListeners.close) {
-                    this._triggerEvent('close', event);
-                }
-
-                const shouldReconnect = !wasIntentional &&
-                    !isAuthError &&
-                    (options.autoReconnect ?? this.autoReconnectEnabled);
-
-                if (shouldReconnect) {
-                    this._scheduleReconnect();
-                }
-            };
+    _processBinaryData(arrayBuffer) {
+        // Just pass through the raw binary data
+        this.notifyListeners('binary', {
+            data: arrayBuffer
         });
     }
 
-    /**
-     * Send a message through the WebSocket
-     * @param {Object|ArrayBuffer} message - Message to send
-     * @param {Object} options - Send options
-     * @param {boolean} options.autoConnect - Whether to auto-connect if not connected (overrides class setting)
-     * @returns {Promise<boolean>} - Success status
-     */
-    async send(message, options = {}) {
-        try {
-            if (!this.isConnected()) {
-                const shouldAutoConnect = options.autoConnect ?? this.autoReconnectEnabled;
-                if (shouldAutoConnect) {
-                    const connectResult = await this.connect({
-                        autoReconnect: shouldAutoConnect
-                    });
-                    if (!connectResult.success) {
-                        throw new Error('Failed to establish connection');
+    async connect(token, params = []) {
+        if (this.socket) {
+            this.disconnect();
+        }
+        
+        if(!token) {
+            token = await getToken();
+        }
+
+        return new Promise(async (resolve, reject) => {
+            try {
+                const url = new URL(this.socketUrl + '?token=' + token + '&' + params.join('&'));
+                console.log('urlsssss', params);
+                this.socket = new WebSocket(url);
+                this.socket.onopen = () => {
+                    console.log('WebSocket connection established');
+                    // Reset reconnect attempts on successful connection
+                    this.reconnectAttempts = 0;
+                    this.reconnectTimeout = 3000;
+                    // Notify listeners of connection
+                    this.notifyListeners('connect', { connected: true });
+                    resolve(true);
+                };
+
+                this.socket.onmessage = async (event) => {
+                    try {
+                        // Handle Blob messages
+                        if (event.data instanceof Blob) {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                this._processBinaryData(reader.result);
+                            };
+                            reader.readAsArrayBuffer(event.data);
+                            return;
+                        }
+
+                        // Handle ArrayBuffer messages
+                        if (event.data instanceof ArrayBuffer) {
+                            this._processBinaryData(event.data);
+                            return;
+                        }
+
+                        // Handle text messages
+                        if (typeof event.data === 'string') {
+                            console.log('WebSocket text message received:', event.data);
+
+                            const data = JSON.parse(event.data);
+                            // Check if this is a response to a pending request
+                            const isHandled = this._checkPendingRequests(data);
+                            if (isHandled) return;
+                            // Continue with normal message processing if not handled as a response
+                            // or if we want to process responses through normal channels too
+                            this.notifyListeners('message', data);
+                            const shouldCallRequireApp = (this.requireAppRunning?.events.includes(data.type) && !this.listeners.has(data?.type) && data?.type && this.requireAppRunning && this.requireAppRunning?.status !== 'running')
+                            if (shouldCallRequireApp) {
+                                await this.requireAppRunning.callback(data);
+                            }
+
+                            if (data.type) {
+                                this.notifyListeners(data.type, data);
+                            }
+
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Error handling WebSocket message:', error);
                     }
-                } else {
-                    throw new Error('WebSocket not connected');
-                }
-            }
+                };
 
-            if (message instanceof ArrayBuffer || message instanceof Uint8Array) {
-                const buffer = message instanceof Uint8Array ? message.buffer : message;
-                this.socket.send(buffer);
-            } else if (message !== null && typeof message === 'object') {
-                try {
-                    this.socket.send(JSON.stringify(message));
-                } catch (jsonError) {
-                    throw new Error(`Failed to stringify message: ${jsonError.message}`);
-                }
-            } else if (typeof message === 'string') {
-                this.socket.send(message);
-            } else {
-                throw new Error(`Unsupported message type: ${typeof message}`);
-            }
+                this.socket.onclose = (event) => {
+                    console.log('WebSocket connection closed', event.code, event.reason);
+                    this.notifyListeners('disconnect', { code: event.code, reason: event.reason });
 
-            return true;
-        } catch (error) {
-            if (this.debugMode) {
-                console.error('Error sending message:', error);
-            }
+                    // Attempt to reconnect if not intentionally closed
+                    if (event.code !== 1000) {
+                        this.attemptReconnect(token, params);
+                    }
+                };
 
-            if (this.eventListeners.error) {
-                this._triggerEvent('error', { message: `Error sending message: ${error.message}` });
-            }
+                this.socket.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    this.notifyListeners('error', error);
+                };
 
-            return false;
+            } catch (error) {
+                console.error('Failed to establish WebSocket connection:', error);
+            }
+        })
+    }
+
+    disconnect() {
+        if (this.socket) {
+            this.notifyListeners('close', { code: 1000, reason: 'User disconnected' });
+            this.socket.close(1000, 'User disconnected');
+            this.socket = null;
         }
     }
 
-    /**
-     * Check if the WebSocket is connected
-     * @returns {boolean} - Connection status
-     */
+    attemptReconnect(token, params) {
+        if (this.reconnectAttempts < this.maxReconnectAttempts && this.socket) {
+            this.reconnectAttempts++;
+            console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+
+            // Notify listeners about reconnection attempt
+            this.notifyListeners('reconnectAttempt', { attempts: this.reconnectAttempts });
+
+            setTimeout(() => {
+                this.connect(token, params);
+            }, this.reconnectTimeout);
+        } else {
+            console.log('Max reconnect attempts reached.');
+            this.notifyListeners('reconnectFailed', { attempts: this.reconnectAttempts });
+        }
+    }
+
     isConnected() {
         return this.socket && this.socket.readyState === WebSocket.OPEN;
     }
 
-    /**
-     * Get the current connection state
-     * @returns {string} - Connection state
-     */
-    getState() {
-        if (!this.socket) return 'CLOSED';
+    sendAsync(data, timeout = 30000) {
+        return new Promise((resolve, reject) => {
+            if (!this.isConnected()) {
+                return reject(new Error('WebSocket is not connected'));
+            }
 
-        switch (this.socket.readyState) {
-            case WebSocket.CONNECTING: return 'CONNECTING';
-            case WebSocket.OPEN: return 'OPEN';
-            case WebSocket.CLOSING: return 'CLOSING';
-            case WebSocket.CLOSED: return 'CLOSED';
-            default: return 'UNKNOWN';
-        }
-    }
+            // Generate a unique request ID if not provided
+            const requestId = data.requestId || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const payload = { ...data, requestId };
 
-    /**
-     * Register event listeners - supports multiple listeners per event type
-     * @param {string} event - Event type
-     * @param {Function} callback - Callback function
-     * @returns {string} - Listener ID that can be used to remove this specific listener
-     */
-    on(event, callback) {
-        if (!this.eventListeners[event]) {
-            this.eventListeners[event] = [];
-        }
+            // If we don't have a pending requests Map, create one
+            if (!this.pendingRequests) {
+                this.pendingRequests = new Map();
+            }
 
-        const listenerId = `${event}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            // Store the resolve/reject handlers with the request ID
+            this.pendingRequests.set(requestId, {
+                resolve,
+                reject,
+                timeoutId: setTimeout(() => {
+                    if (this.pendingRequests.has(requestId)) {
+                        this.pendingRequests.delete(requestId);
+                        reject(new Error(`Request ${requestId} timed out after ${timeout}ms`));
+                    }
+                }, timeout)
+            });
 
-        this.eventListeners[event].push({
-            id: listenerId,
-            callback
+            // Send the request
+            this.send(payload);
         });
-
-        return listenerId;
     }
 
-    /**
-     * Remove an event listener
-     * @param {string} event - Event type to remove
-     * @param {string|Function} [idOrCallback] - Specific listener ID or callback to remove
-     *                                      If omitted, removes all listeners for the event
-     * @returns {boolean} - Whether any listeners were removed
-     */
-    off(event, idOrCallback) {
-        if (!this.eventListeners[event]) {
+    // Process incoming messages for pending requests
+    _checkPendingRequests(data) {
+        if (!this.pendingRequests || !data.requestId) {
             return false;
         }
 
-        if (!idOrCallback) {
-            delete this.eventListeners[event];
+        const pending = this.pendingRequests.get(data.requestId);
+        if (pending) {
+            // Clear the timeout and resolve the promise
+            clearTimeout(pending.timeoutId);
+            this.pendingRequests.delete(data.requestId);
+            pending.resolve(data);
             return true;
         }
 
-        const originalLength = this.eventListeners[event].length;
-        if (typeof idOrCallback === 'string') {
-            this.eventListeners[event] = this.eventListeners[event].filter(
-                listener => listener.id !== idOrCallback
-            );
-        } else if (typeof idOrCallback === 'function') {
-            this.eventListeners[event] = this.eventListeners[event].filter(
-                listener => listener.callback !== idOrCallback
-            );
-        }
-
-        if (this.eventListeners[event].length === 0) {
-            delete this.eventListeners[event];
-        }
-
-        return originalLength > (this.eventListeners[event]?.length || 0);
+        return false;
     }
 
-    /**
-     * Trigger event listeners for a specific event
-     * @param {string} event - Event type
-     * @param {any} data - Data to pass to the listeners
-     * @private
-     */
-    _triggerEvent(event, data) {        
-        if (!this.eventListeners[event]) {
-            return;
+    send(data) {
+        if (this.isConnected()) {
+            this.socket.send(JSON.stringify(data));
+            return true;
         }
-        
-        if (this.eventListeners[event].length === 0) {
-            return;
-        }
-
-        for (const listener of this.eventListeners[event]) {
-            try {
-                listener.callback(data);
-            } catch (error) {
-
-            }
-        }
+        console.error('Cannot send message, WebSocket is not connected.');
+        return false;
     }
 
-    /**
-     * Close the WebSocket connection
-     * @param {number} code - Close code
-     * @param {string} reason - Close reason
-     */
-    close(code = 1000, reason = 'Client closed connection') {
-        if (this.connectionTimeout) {
-            clearTimeout(this.connectionTimeout);
-            this.connectionTimeout = null;
+    // Add event listener
+    on(event, callback) {
+        if (!this.listeners.has(event)) {
+            this.listeners.set(event, []);
         }
+        this.listeners.get(event).push(callback);
 
-        if (this.reconnectTimeout) {
-            clearTimeout(this.reconnectTimeout);
-            this.reconnectTimeout = null;
-        }
-
-        this._clearPingPong();
-
-        // Reset audio streaming state
-        this.isAudioStreamActive = false;
-        this.currentAudioSession = null;
-
-        if (this.socket) {
-            try {
-                if (this.socket.readyState === WebSocket.OPEN ||
-                    this.socket.readyState === WebSocket.CONNECTING) {
-                    this.socket.close(code, reason);
+        // Flush buffered messages if any
+        if (this.bufferedEvents.has(event)) {
+            const buffered = this.bufferedEvents.get(event);
+            buffered.forEach((data) => {
+                try {
+                    callback(data);
+                } catch (error) {
+                    console.error(`Error flushing buffered ${event}:`, error);
                 }
-            } catch (error) {
-                if (this.debugMode) {
-                    console.error('Error closing WebSocket:', error);
-                }
-            }
-
-            this.socket = null;
+            });
+            this.bufferedEvents.delete(event); // Clear buffer
         }
 
-        this.isConnecting = false;
-        this.reconnectAttempts = 0;
+        // Return unsubscribe
+        return () => this.off(event, callback);
     }
 
-    /**
-     * Start the ping-pong mechanism to keep the connection alive
-     * @private
-     */
-    _startPingPong() {
-        this._clearPingPong();
-        this.lastPongTime = Date.now();
+    // Remove event listener
+    off(event, callback) {
+        if (!this.listeners.has(event)) return;
 
-        const jitteredInterval = this.pingIntervalTime * (0.9 + Math.random() * 0.2);
+        const callbacks = this.listeners.get(event);
+        const index = callbacks.indexOf(callback);
 
-        this.pingInterval = setInterval(() => {
-            if (!this.isConnected()) {
-                this._clearPingPong();
-                return;
-            }
+        if (index !== -1) {
+            callbacks.splice(index, 1);
+        }
 
-            const pongTimeout = this.pingIntervalTime * 2.5;
-            if (this.lastPongTime && Date.now() - this.lastPongTime > pongTimeout) {
-                this.close(4000, 'No pong response');
-                return;
-            }
-
-            try {
-                this.send({
-                    type: 'ping',
-                    timestamp: Date.now()
-                });
-            } catch (error) {
-                if (this.debugMode) {
-                    console.error('Error sending ping:', error);
-                }
-            }
-        }, jitteredInterval);
-    }
-
-    /**
-     * Clear the ping-pong mechanism
-     * @private
-     */
-    _clearPingPong() {
-        if (this.pingInterval) {
-            clearInterval(this.pingInterval);
-            this.pingInterval = null;
+        if (callbacks.length === 0) {
+            this.listeners.delete(event);
         }
     }
 
-    /**
-     * Schedule a reconnection attempt
-     * @private
-     */
-    _scheduleReconnect() {
-        if (!this.autoReconnectEnabled) {
+    // Notify all listeners for a specific event
+    notifyListeners(event, data) {
+        const hasListeners = this.listeners.has(event);
+        if (!hasListeners && this.bufferableEventTypes.has(event)) {
+            // Buffer the event if no listener yet
+            if (!this.bufferedEvents.has(event)) {
+                this.bufferedEvents.set(event, []);
+            }
+            this.bufferedEvents.get(event).push(data);
             return;
         }
 
-        if (this.reconnectTimeout) {
-            clearTimeout(this.reconnectTimeout);
-        }
-
-        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            if (this.eventListeners.reconnectFailed) {
-                this._triggerEvent('reconnectFailed', {
-                    message: `Maximum reconnect attempts (${this.maxReconnectAttempts}) reached`
-                });
-            }
-            return;
-        }
-
-        const delay = Math.min(
-            30000,
-            this.reconnectDelay * Math.pow(1.5, this.reconnectAttempts) * (0.9 + Math.random() * 0.2)
-        );
-
-        this.reconnectAttempts++;
-
-        if (this.eventListeners.reconnecting) {
-            this._triggerEvent('reconnecting', {
-                attempt: this.reconnectAttempts,
-                maxAttempts: this.maxReconnectAttempts,
-                delay: Math.round(delay)
+        if (hasListeners) {
+            this.listeners.get(event).forEach((callback) => {
+                try {
+                    callback(data);
+                } catch (error) {
+                    console.error(`Error in ${event} listener:`, error);
+                }
             });
         }
+    }
 
-        this.reconnectTimeout = setTimeout(() => {
-            this.connect({ autoReconnect: true }).catch(() => { });
-        }, delay);
+    setAppServerStatus(status) {
+        this.requireAppRunning.status = status;
+    }
+
+
+    setRequireAppRunning(events, callback, status) {
+        this.requireAppRunning = { events, callback, status };
+        return () => {
+            this.requireAppRunning = null;
+        }
     }
 }
 
-// Create and export a singleton instance
-const webSocketService = new WebSocketService();
-
-// Automatically initialize the service when imported
-setTimeout(() => {
-    webSocketService.initialize().catch(() => { });
-}, 0);
-
-export default webSocketService;
+// Create a singleton instance
+const webSocketService = new WebSocketService({ socketUrl: 'wss://api.oblien.com' });
+export default webSocketService; 

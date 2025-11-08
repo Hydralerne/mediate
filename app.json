@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "ONVO",
-    "slug": "ONVO",
+    "name": "Hekai",
+    "slug": "Hekai",
     "version": "2.0.7",
     "orientation": "portrait",
-    "icon": "./assets/images/app.png",
-    "scheme": "onvo",
-    "host": "onvo.me",
+    "icon": "./app.png",
+    "scheme": "hekai",
+    "host": "hekai.org",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "backgroundColor": "#000000",
@@ -22,7 +22,7 @@
       "entitlements": {
         "aps-environment": "production",
         "com.apple.developer.associated-domains": [
-          "applinks:onvo.me"
+          "applinks:hekai.org"
         ]
       },
       "googleServicesFile": "./GoogleService-Info.plist",
@@ -35,18 +35,18 @@
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
-              "onvo"
+              "hekai"
             ]
           },
           {
             "CFBundleURLSchemes": [
-              "onvo"
+              "hekai"
             ]
           }
         ],
         "UIViewControllerBasedStatusBarAppearance": false
       },
-      "bundleIdentifier": "me.onvo.ONVO"
+      "bundleIdentifier": "com.hekai.app"
     },
     "android": {
       "useNextNotificationsApi": true,
@@ -56,13 +56,13 @@
       "adaptiveIcon": {
         "backgroundColor": "#000000"
       },
-      "package": "me.onvo.onvo",
+      "package": "com.hekai.app",
       "intentFilters": [
         {
           "action": "VIEW",
           "data": [
             {
-              "scheme": "onvo"
+              "scheme": "hekai"
             }
           ],
           "category": [
@@ -75,7 +75,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "onvo.me"
+              "host": "hekai.org"
             }
           ],
           "category": [
@@ -104,7 +104,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/icons/logo/logo.png",
+          "image": "./logo.png",
           "imageWidth": 100,
           "resizeMode": "contain",
           "backgroundColor": "#000000"

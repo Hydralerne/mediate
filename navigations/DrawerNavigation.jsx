@@ -17,7 +17,7 @@ const DrawerNavigator = () => {
         headerShown: false,
         drawerStyle: {
           width: '80%',
-          backgroundColor: '#fff',
+          backgroundColor: '#000',
         },
         swipeEdgeWidth: width,
       }}

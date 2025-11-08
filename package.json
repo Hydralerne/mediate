@@ -1,5 +1,5 @@
 {
-  "name": "onvo",
+  "name": "hekai",
   "main": "app/index.jsx",
   "version": "1.0.0",
   "scripts": {
@@ -51,6 +51,7 @@
     "expo-font": "14.0.9",
     "expo-gl": "^16.0.7",
     "expo-haptics": "15.0.7",
+    "expo-image": "^3.0.10",
     "expo-image-manipulator": "14.0.7",
     "expo-image-picker": "17.0.8",
     "expo-in-app-purchases": "^14.5.0",

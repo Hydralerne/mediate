@@ -10,8 +10,8 @@ export const createRenderer = (gl, touchPositionRef, colorRefs) => {
         const vPrimaryColor = new THREE.Vector3(1.0, 1.0, 1.0); // Default to white
         const vSecondaryColor = new THREE.Vector3(0.0, 0.5, 1.0); // Default to blue
 
-        // Start with variation 3 (triangle shape)
-        let variation = 2
+        // Start with variation 1 (will be dynamic later)
+        let variation = 1
 
         // Get dimensions
         const w = gl.drawingBufferWidth;
@@ -45,7 +45,8 @@ export const createRenderer = (gl, touchPositionRef, colorRefs) => {
                 u_colorMix: { value: 0.5 },
                 u_time: { value: 0.0 },
                 u_blurIntensity: { value: 0.5 },
-                u_effectIntensity: { value: 1.0 }
+                u_effectIntensity: { value: 1.0 },
+                u_noiseEnabled: { value: 1.0 }
             },
             defines: {
                 VAR: variation
@@ -95,6 +96,11 @@ export const createRenderer = (gl, touchPositionRef, colorRefs) => {
 
             if (colorRefs && colorRefs.effectIntensityRef) {
                 mat.uniforms.u_effectIntensity.value = colorRefs.effectIntensityRef.current || 1.0;
+            }
+
+            // Update noise enabled if provided
+            if (colorRefs && colorRefs.noiseEnabledRef !== undefined) {
+                mat.uniforms.u_noiseEnabled.value = colorRefs.noiseEnabledRef.current ? 1.0 : 0.0;
             }
 
             // Update shader variation based on variation ref instead of audio level

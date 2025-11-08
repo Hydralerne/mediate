@@ -87,7 +87,7 @@ export const animationPatterns = {
         return { x, y };
     }
 };
-// Main touch movement simulation controller
+// Main touch movement simulation controller - OPTIMIZED
 export const createTouchSimulator = (refs) => {
     const {
         touchPositionRef,
@@ -97,12 +97,22 @@ export const createTouchSimulator = (refs) => {
         lastUpdateTimeRef
     } = refs;
 
+    // Cache frequently used values
+    let cachedNormalizedAudio = 0;
+    let cacheTime = 0;
+    const CACHE_DURATION = 50; // ms - reuse normalized audio for 50ms
+
     return {
-        // Main simulation function
+        // Main simulation function - OPTIMIZED
         simulate: (params = {}) => {
-            // Get current audio level from ref and normalize
-            const rawAudioLevel = audioLevelRef.current;
-            const normalizedAudioLevel = normalizeAudioLevel(rawAudioLevel);
+            const now = performance.now();
+            
+            // Cache normalized audio to avoid recalculating every frame
+            if (now - cacheTime > CACHE_DURATION) {
+                const rawAudioLevel = audioLevelRef.current;
+                cachedNormalizedAudio = normalizeAudioLevel(rawAudioLevel);
+                cacheTime = now;
+            }
 
             const {
                 centerX = Dimensions.get('window').width / 2,
@@ -121,31 +131,26 @@ export const createTouchSimulator = (refs) => {
             animationStateRef.current.centerX = centerX;
             animationStateRef.current.centerY = centerY;
 
-            // Get current time for animation
-            const now = performance.now();
+            // Get delta time for animation
             const deltaTime = (now - lastUpdateTimeRef.current) / 1000; // in seconds
             lastUpdateTimeRef.current = now;
 
-            // Increase the effective speed significantly
+            // Simplified speed calculation
             const effectiveSpeed = speed * 3;
 
-            // Update animation angle with faster speed
+            // Update animation angle
             animationStateRef.current.angle += effectiveSpeed * deltaTime;
 
-            // Calculate radius based on normalized audio level
-            // Constrain the radius more when audio level is low
-            const audioFactor = normalizedAudioLevel >= 0.9 ? radiusMultiplier * 2 :
-                (0.2 + normalizedAudioLevel * 0.8) * radiusMultiplier;
-            const maxRadiusPercent = normalizedAudioLevel >= 0.9 ? 1.0 :
-                0.2 + (normalizedAudioLevel * 0.8);
+            // Simplified radius calculation - fewer conditionals
+            const audioFactor = (0.2 + cachedNormalizedAudio * 0.8) * radiusMultiplier * 
+                               (cachedNormalizedAudio >= 0.9 ? 2 : 1);
+            const maxRadiusPercent = 0.2 + (cachedNormalizedAudio * 0.8);
             const baseR = baseRadius * audioFactor;
-
-            // The maximum allowed radius - only reach edges on high audio
             const maxRadius = baseRadius * maxRadiusPercent;
 
             // Initialize radius if needed
             if (!animationStateRef.current.radius) {
-                animationStateRef.current.radius = baseR * 0.3; // Start closer to center
+                animationStateRef.current.radius = baseR * 0.3;
             }
 
             // Helper functions for pattern handlers
@@ -168,7 +173,7 @@ export const createTouchSimulator = (refs) => {
                 waveFrequency,
                 waveAmplitude,
                 audioFactor,
-                normalizedAudioLevel,
+                normalizedAudioLevel: cachedNormalizedAudio,
                 randomness,
                 spiralExpansion,
                 deltaTime,
@@ -177,19 +182,19 @@ export const createTouchSimulator = (refs) => {
                 updateAngle
             };
 
-            // Get the appropriate animation pattern function
+            // Get pattern function and calculate position
             const patternFunction = animationPatterns[pattern] || animationPatterns[PATTERNS.RANDOM];
-
-            // Calculate position using the selected pattern
             let position = patternFunction(patternParams);
 
-            // Apply edge point influence
-            position = applyEdgePointInfluence(
-                position,
-                edgePointsRef.current,
-                animationStateRef.current.angle,
-                normalizedAudioLevel
-            );
+            // Apply edge point influence only if necessary
+            if (edgePointsRef.current.length > 0 && cachedNormalizedAudio > 0.7) {
+                position = applyEdgePointInfluence(
+                    position,
+                    edgePointsRef.current,
+                    animationStateRef.current.angle,
+                    cachedNormalizedAudio
+                );
+            }
 
             // Update the touch position ref
             touchPositionRef.current.set(position.x, position.y);

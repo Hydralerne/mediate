@@ -7,9 +7,16 @@ import { createRenderer } from './render.js';
 import { normalizeAudioLevel, PATTERNS, getWindowDimensions, generateColors, createTouchSimulator } from './utils.js';
 
 
+// Performance modes
+export const PERFORMANCE_MODES = {
+  PERFORMANCE: 'performance',  // No noise, minimal blur, 30fps simulation
+  BALANCED: 'balanced',        // Some noise, moderate blur, 60fps simulation  
+  QUALITY: 'quality'           // Full noise, full blur, 100fps simulation
+};
+
 // Main component
 const BlobScene = ({ 
-  audioLevel = 0, 
+  audioLevelRef,  // OPTIMIZED: Now accepts ref directly instead of value
   edgePoints = [],
   primaryColor = { r: 1.0, g: 1.0, b: 1.0 },
   secondaryColor = { r: 0.0, g: 0.5, b: 1.0 },
@@ -17,7 +24,9 @@ const BlobScene = ({
   useCustomColors = false, // If true, use the provided colors; if false, generate dynamically
   blurIntensity = 0.5,
   effectIntensity = 1.0,
-  variationRef
+  variationRef,
+  performanceMode = PERFORMANCE_MODES.BALANCED, // New prop for performance control
+  enableNoise = true // Direct noise control (overrides performanceMode if set explicitly)
 }) => {
   // Create refs to store state
   const touchPositionRef = useRef(new THREE.Vector2());
@@ -31,8 +40,11 @@ const BlobScene = ({
     centerY: 0
   });
   
-  // Store audioLevel and edgePoints in refs to prevent re-renders
-  const audioLevelRef = useRef(audioLevel);
+  // OPTIMIZED: Use provided audioLevelRef or create default
+  const internalAudioLevelRef = useRef(0);
+  const finalAudioLevelRef = audioLevelRef || internalAudioLevelRef;
+  
+  // Store edgePoints in ref to prevent re-renders
   const edgePointsRef = useRef(edgePoints);
   
   // Flag for using custom colors vs. dynamic colors
@@ -46,12 +58,36 @@ const BlobScene = ({
   // Effect control refs
   const blurIntensityRef = useRef(blurIntensity);
   const effectIntensityRef = useRef(effectIntensity);
+  const noiseEnabledRef = useRef(enableNoise);
+  
+  // Performance mode settings
+  const performanceModeRef = useRef(performanceMode);
+  
+  // Apply performance mode settings
+  useEffect(() => {
+    performanceModeRef.current = performanceMode;
+    
+    // Apply performance mode presets
+    switch (performanceMode) {
+      case PERFORMANCE_MODES.PERFORMANCE:
+        noiseEnabledRef.current = false;
+        blurIntensityRef.current = 0.2;
+        effectIntensityRef.current = 0.5;
+        break;
+      case PERFORMANCE_MODES.BALANCED:
+        noiseEnabledRef.current = true;
+        blurIntensityRef.current = 0.4;
+        effectIntensityRef.current = 0.7;
+        break;
+      case PERFORMANCE_MODES.QUALITY:
+        noiseEnabledRef.current = true;
+        blurIntensityRef.current = 0.6;
+        effectIntensityRef.current = 1.0;
+        break;
+    }
+  }, [performanceMode]);
   
   // Update refs when props change without causing re-renders
-  useEffect(() => {
-    audioLevelRef.current = audioLevel;
-  }, [audioLevel]);
-  
   useEffect(() => {
     edgePointsRef.current = edgePoints;
   }, [edgePoints]);
@@ -93,7 +129,7 @@ const BlobScene = ({
     createTouchSimulator({
       touchPositionRef,
       animationStateRef,
-      audioLevelRef,
+      audioLevelRef: finalAudioLevelRef,  // Use the final ref (from props or internal)
       edgePointsRef,
       lastUpdateTimeRef
     })
@@ -136,9 +172,10 @@ const BlobScene = ({
       primaryColorRef,
       secondaryColorRef,
       colorMixRef,
-      audioLevelRef,
+      audioLevelRef: finalAudioLevelRef,  // Use the final ref (from props or internal)
       blurIntensityRef,
       effectIntensityRef,
+      noiseEnabledRef,
       variationRef
     });
     
@@ -164,6 +201,22 @@ const BlobScene = ({
       return PATTERNS.RANDOM;
     };
 
+    // Determine simulation interval based on performance mode
+    let simulationInterval;
+    switch (performanceModeRef.current) {
+      case PERFORMANCE_MODES.PERFORMANCE:
+        simulationInterval = 33; // ~30fps simulation
+        break;
+      case PERFORMANCE_MODES.BALANCED:
+        simulationInterval = 16; // ~60fps simulation
+        break;
+      case PERFORMANCE_MODES.QUALITY:
+        simulationInterval = 10; // ~100fps simulation
+        break;
+      default:
+        simulationInterval = 16; // Default to balanced
+    }
+    
     // Set up animation loops with performance optimizations
     const simulationTimer = setInterval(() => {
       // Check if component is still mounted via a ref
@@ -175,6 +228,7 @@ const BlobScene = ({
       // Get normalized audio level
       const rawAudio = audioLevelRef.current;
       const normalizedAudio = normalizeAudioLevel(rawAudio);
+      
       // Only generate dynamic colors if not using custom colors
       if (!useCustomColorsRef.current) {
         const time = performance.now() * 0.001;
@@ -187,12 +241,15 @@ const BlobScene = ({
       }
       
       // Update effect intensity based on audio level if in dynamic mode
-      if (!useCustomColorsRef.current) {
+      // But respect performance mode limits
+      if (!useCustomColorsRef.current && performanceModeRef.current !== PERFORMANCE_MODES.PERFORMANCE) {
         // Slightly increase blur intensity with audio level for more dynamic effect
-        blurIntensityRef.current = Math.min(1.0, 0.3 + normalizedAudio * 0.7);
+        const maxBlur = performanceModeRef.current === PERFORMANCE_MODES.QUALITY ? 1.0 : 0.6;
+        blurIntensityRef.current = Math.min(maxBlur, 0.3 + normalizedAudio * 0.7);
         
         // Increase effect intensity with audio level
-        effectIntensityRef.current = Math.min(1.5, 0.6 + normalizedAudio * 0.9);
+        const maxEffect = performanceModeRef.current === PERFORMANCE_MODES.QUALITY ? 1.5 : 1.0;
+        effectIntensityRef.current = Math.min(maxEffect, 0.6 + normalizedAudio * 0.9);
       }
       
       // Simulate movement with parameters adjusted for desired behavior
@@ -208,7 +265,7 @@ const BlobScene = ({
         randomness: 0.3 + normalizedAudio * 0.7, // More randomness at higher audio
         spiralExpansion: 0.05 + normalizedAudio * 0.2
       });
-    }, 100); // 60fps instead of 100fps for better performance
+    }, simulationInterval);
     
     // More efficient render loop with frame limiting
     let lastRenderTime = 0;

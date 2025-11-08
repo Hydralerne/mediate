@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const ChatInput = ({ onSend, onStop, isLoading = false, disabled = false }) => {
+const ChatInput = ({ onSend, onStop, isLoading = false, disabled = false, onFocus, onBlur }) => {
   const [message, setMessage] = useState('');
   const insets = useSafeAreaInsets();
 
@@ -35,12 +35,20 @@ const ChatInput = ({ onSend, onStop, isLoading = false, disabled = false }) => {
     <View style={[styles.container, { paddingBottom: insets.bottom + 10 }]}>
       {/* Input Area */}
       <View style={styles.inputContainer}>
+        <TouchableOpacity onPress={onFocus}>
+          <Image
+            source={require('@/assets/icons/Attach_tRduoVW2Bxlt1MpphXqVImruts5PR567lB13.png')}
+            style={[styles.sendIcon, {marginRight: 10}]}
+          />
+        </TouchableOpacity>
         <TextInput
           style={styles.input}
           placeholder="Add your research topic..."
           placeholderTextColor="rgba(255, 255, 255, 0.4)"
           value={message}
           onChangeText={setMessage}
+          onFocus={onFocus}
+          onBlur={onBlur}
           multiline
           maxLength={1000}
           editable={!disabled}
@@ -57,7 +65,7 @@ const ChatInput = ({ onSend, onStop, isLoading = false, disabled = false }) => {
           disabled={!isButtonActive}
         >
           <Image 
-            source={require('@/assets/icons/login/flow right-143-1696832127.png')} 
+            source={require('@/assets/icons/arrow left md-33-1696832059.png')} 
             style={[
               styles.sendIcon,
               isButtonActive && styles.sendIconActive
@@ -92,6 +100,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     maxHeight: 100,
     paddingVertical: 8,
+    marginRight: 10,
   },
   sendButton: {
     width: 36,
@@ -106,8 +115,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   sendIcon: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     tintColor: 'rgba(255, 255, 255, 0.4)',
   },
   sendIconActive: {
@@ -120,18 +129,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   stopButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   stopIcon: {
-    width: 14,
-    height: 14,
+    width: 24,
+    height: 24,
     backgroundColor: '#000',
-    borderRadius: 2,
+    borderRadius: 8,
   },
 });
 
