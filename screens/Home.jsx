@@ -10,6 +10,7 @@ import WelcomeMessage from '@/components/home/WelcomeMessage';
 import { PERFORMANCE_MODES } from '@/components/blob/BlobScene';
 import BlobScene from '../components/blob/BlobScene';
 import EyeMain from '@/components/eye/Main';
+import { request } from '@/utils/requests';
 
 const Main = ({ navigation }) => {
 
@@ -44,7 +45,9 @@ const Main = ({ navigation }) => {
   const handleSendMessage = async (message) => {
     setIsLoading(true);
     variationRef.current = 3
-    setAnalysing('Analyzing your request and searching for the best answer');
+    setAnalysing('Starting your research...');
+    const token = await getToken();
+   
   };
 
   const handleStopGeneration = () => {
